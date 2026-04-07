@@ -1,7 +1,4 @@
-type PillProps = {
-  children: React.ReactNode;
-  className?: string;
-};
+import type { PillProps } from "../types/Pill";
 
 const Pill = ({ children, className }: PillProps) => {
   return (
