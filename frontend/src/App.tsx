@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
 import Pill from "./components/ui/Pill";
-import { stats, reviewQueue, automations, activityFeed } from "./components/MockData";
-import { stageStyles } from "./components/utils/StageStyles";
-import { priorityStyles } from "./components/utils/PriorityStyles";
+import { reviewQueue } from "./mockData/reviewQueue";
+import { activityFeed } from "./mockData/activityFeed";
+import { stats } from "./mockData/stats";
+import { automations } from "./mockData/automations";
+import { stageStyles } from "./components/styles/StageStyles";
+import { priorityStyles } from "./components/styles/PriorityStyles";
 import { filterOptions } from "./components/utils/FilterOptions";
 
 function App() {
