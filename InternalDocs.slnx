@@ -1,4 +1,3 @@
 <Solution>
   <Project Path="InternalDocs/InternalDocs.Api/InternalDocs.Api.csproj" />
-  <Project Path="InternalDocs/InternalDocs.Tests/InternalDocs.Tests.csproj" />
 </Solution>
