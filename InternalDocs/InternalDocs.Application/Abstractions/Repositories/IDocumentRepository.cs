@@ -2,9 +2,6 @@ using InternalDocs.Domain.Entities;
 
 namespace InternalDocs.Application.Abstractions.Repositories;
 
-/// <summary>
-/// Contract for document aggregate queries and commands.
-/// </summary>
 public interface IDocumentRepository
 {
     Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
@@ -16,9 +13,6 @@ public interface IDocumentRepository
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// Parameter object allowing future filtering scenarios to grow without breaking signatures.
-/// </summary>
 public sealed record DocumentStatusFilter(
     string? Status,
     Guid? DocumentTypeId,

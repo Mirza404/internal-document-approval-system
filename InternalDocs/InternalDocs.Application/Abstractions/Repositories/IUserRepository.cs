@@ -2,9 +2,6 @@ using InternalDocs.Domain.Entities;
 
 namespace InternalDocs.Application.Abstractions.Repositories;
 
-/// <summary>
-/// Contract for user persistence operations so higher layers avoid direct DbContext usage.
-/// </summary>
 public interface IUserRepository
 {
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
