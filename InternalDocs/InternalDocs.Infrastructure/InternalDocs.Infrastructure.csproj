@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../InternalDocs.Domain/InternalDocs.Domain.csproj" />
+    <ProjectReference Include="../InternalDocs.Application/InternalDocs.Application.csproj" />
   </ItemGroup>
 
 </Project>
