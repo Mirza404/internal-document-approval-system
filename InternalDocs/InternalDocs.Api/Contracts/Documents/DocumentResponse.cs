@@ -1,4 +1,4 @@
-using InternalDocs.Domain.Entities;
+using InternalDocs.Application.Documents;
 
 namespace InternalDocs.Api.Contracts.Documents;
 
@@ -15,7 +15,7 @@ public sealed class DocumentResponse
     public DateTime? UpdatedAt { get; init; }
     public DateTime? ApprovedAt { get; init; }
 
-    public static DocumentResponse FromEntity(Document document)
+    public static DocumentResponse FromDto(DocumentDto document)
     {
         return new DocumentResponse
         {
