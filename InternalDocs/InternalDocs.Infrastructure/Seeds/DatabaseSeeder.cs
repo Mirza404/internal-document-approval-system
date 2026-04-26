@@ -1,4 +1,5 @@
 using InternalDocs.Domain.Entities;
+using InternalDocs.Domain.Enums;
 using InternalDocs.Infrastructure.Data;
 using BC = BCrypt.Net.BCrypt;
 
@@ -24,7 +25,7 @@ public static class DatabaseSeeder
             Email = "admin@internaldocs.local",
             FullName = "System Administrator",
             PasswordHash = BC.HashPassword(adminPassword),
-            Role = "Admin",
+            Role = UserRole.Admin,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };

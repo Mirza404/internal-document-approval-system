@@ -28,7 +28,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
             entity.Property(e => e.FullName).IsRequired().HasMaxLength(256);
             entity.Property(e => e.PasswordHash).IsRequired();
-            entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Role).HasConversion<string>().IsRequired().HasMaxLength(50);
             entity.HasIndex(e => e.Email).IsUnique();
         });
 
@@ -46,8 +46,8 @@ public class AppDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Description).HasMaxLength(2000);
-            entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Priority).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).HasConversion<string>().IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Priority).HasConversion<string>().IsRequired().HasMaxLength(50);
 
             entity.HasOne(e => e.DocumentType)
                 .WithMany(dt => dt.Documents)
@@ -82,7 +82,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<ApprovalAction>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Action).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Action).HasConversion<string>().IsRequired().HasMaxLength(50);
             entity.Property(e => e.Comments).HasMaxLength(1000);
 
             entity.HasOne(e => e.Document)
