@@ -1,5 +1,7 @@
 namespace InternalDocs.Tests;
 
+using Xunit;
+
 public class SampleTest
 {
     [Fact]

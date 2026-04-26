@@ -1,3 +1,7 @@
 <Solution>
   <Project Path="InternalDocs/InternalDocs.Api/InternalDocs.Api.csproj" />
+  <Project Path="InternalDocs/InternalDocs.Application/InternalDocs.Application.csproj" />
+  <Project Path="InternalDocs/InternalDocs.Domain/InternalDocs.Domain.csproj" />
+  <Project Path="InternalDocs/InternalDocs.Infrastructure/InternalDocs.Infrastructure.csproj" />
+  <Project Path="InternalDocs/InternalDocs.Tests/InternalDocs.Tests.csproj" />
 </Solution>

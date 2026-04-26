@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.99.2",
     "axios": "1.14.0",
     "jwt-decode": "^4.0.0",
     "prettier": "^3.8.1",
