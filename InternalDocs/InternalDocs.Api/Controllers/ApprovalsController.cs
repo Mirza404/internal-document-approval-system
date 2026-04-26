@@ -1,25 +1,21 @@
 using InternalDocs.Api.Contracts.Approvals;
-using InternalDocs.Application.Interfaces;
-using InternalDocs.Domain.Entities;
+using InternalDocs.Application.Abstractions.Services;
+using InternalDocs.Application.Approvals;
+using InternalDocs.Application.Common;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace InternalDocs.Api.Controllers;
 
 [ApiController]
 [Route("approvals")]
-public sealed class ApprovalsController(IAppDbContext dbContext) : ControllerBase
+public sealed class ApprovalsController(IApprovalService approvalService) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<ApprovalResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<ApprovalResponse>>> GetAll(CancellationToken cancellationToken)
     {
-        var approvals = await dbContext.ApprovalActions
-            .AsNoTracking()
-            .OrderByDescending(x => x.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        return Ok(approvals.Select(ApprovalResponse.FromEntity).ToList());
+        var approvals = await approvalService.GetAllAsync(cancellationToken);
+        return Ok(approvals.Select(ApprovalResponse.FromDto).ToList());
     }
 
     [HttpGet("{id:guid}")]
@@ -27,16 +23,8 @@ public sealed class ApprovalsController(IAppDbContext dbContext) : ControllerBas
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ApprovalResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var approval = await dbContext.ApprovalActions
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-
-        if (approval is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(ApprovalResponse.FromEntity(approval));
+        var result = await approvalService.GetByIdAsync(id, cancellationToken);
+        return ToApprovalResponse(result);
     }
 
     [HttpPost]
@@ -46,82 +34,49 @@ public sealed class ApprovalsController(IAppDbContext dbContext) : ControllerBas
         [FromBody] CreateApprovalRequest request,
         CancellationToken cancellationToken)
     {
-        // Guard against foreign-key violations before inserting the action.
-        var documentExists = await dbContext.Documents
-            .AnyAsync(x => x.Id == request.DocumentId, cancellationToken);
+        var command = new CreateApprovalCommand(
+            request.DocumentId,
+            request.ApproverId,
+            request.Status,
+            request.Comments);
 
-        if (!documentExists)
+        var result = await approvalService.CreateAsync(command, cancellationToken);
+        if (!result.Succeeded || result.Value is null)
         {
-            return BadRequest("DocumentId does not exist.");
+            return ToApprovalResponse(result);
         }
 
-        var approverExists = await dbContext.Users
-            .AnyAsync(x => x.Id == request.ApproverId, cancellationToken);
-
-        if (!approverExists)
-        {
-            return BadRequest("ApproverId does not exist.");
-        }
-
-        var approval = new ApprovalAction
-        {
-            Id = Guid.NewGuid(),
-            DocumentId = request.DocumentId,
-            ApprovedByUserId = request.ApproverId,
-            Action = NormalizeStatus(request.Status),
-            Comments = request.Comments?.Trim(),
-            CreatedAt = DateTime.UtcNow
-        };
-
-        dbContext.ApprovalActions.Add(approval);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        return CreatedAtAction(nameof(GetById), new { id = approval.Id }, ApprovalResponse.FromEntity(approval));
+        var response = ApprovalResponse.FromDto(result.Value);
+        return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApprovalResponse>> Update(
         Guid id,
         [FromBody] UpdateApprovalRequest request,
         CancellationToken cancellationToken)
     {
-        var approval = await dbContext.ApprovalActions
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-
-        if (approval is null)
-        {
-            return NotFound();
-        }
-
-        if (request.Status is not null)
-        {
-            approval.Action = NormalizeStatus(request.Status);
-        }
-
-        if (request.Comments is not null)
-        {
-            approval.Comments = request.Comments.Trim();
-        }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-        return Ok(ApprovalResponse.FromEntity(approval));
+        var command = new UpdateApprovalCommand(request.Status, request.Comments);
+        var result = await approvalService.UpdateAsync(id, command, cancellationToken);
+        return ToApprovalResponse(result);
     }
 
-    private static string NormalizeStatus(string? rawStatus)
+    private ActionResult<ApprovalResponse> ToApprovalResponse(ServiceResult<ApprovalDto> result)
     {
-        // Store canonical values in DB while accepting flexible client casing.
-        if (string.IsNullOrWhiteSpace(rawStatus))
+        if (result.Succeeded && result.Value is not null)
         {
-            return "Pending";
+            return Ok(ApprovalResponse.FromDto(result.Value));
         }
 
-        return rawStatus.Trim().ToLowerInvariant() switch
+        return result.ErrorType switch
         {
-            "approved" => "Approved",
-            "rejected" => "Rejected",
-            _ => "Pending"
+            ServiceErrorType.NotFound => NotFound(result.Error),
+            ServiceErrorType.Validation => BadRequest(result.Error),
+            ServiceErrorType.Conflict => Conflict(result.Error),
+            _ => BadRequest(result.Error)
         };
     }
 }
