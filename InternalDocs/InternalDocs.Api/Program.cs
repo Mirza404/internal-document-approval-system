@@ -1,6 +1,7 @@
-using InternalDocs.Infrastructure.Data;
-using InternalDocs.Application.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using InternalDocs.Application.Abstractions.Services;
+using InternalDocs.Application.Approvals;
+using InternalDocs.Application.Documents;
+using InternalDocs.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,11 +10,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddScoped<IAppDbContext>(provider =>
-    provider.GetRequiredService<AppDbContext>());
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IApprovalService, ApprovalService>();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
