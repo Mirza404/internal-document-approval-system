@@ -2,6 +2,7 @@ using InternalDocs.Application.Abstractions.Repositories;
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Common;
 using InternalDocs.Domain.Entities;
+using InternalDocs.Domain.Enums;
 
 namespace InternalDocs.Application.Approvals;
 
@@ -10,11 +11,11 @@ public sealed class ApprovalService(
     IDocumentRepository documents,
     IUserRepository users) : IApprovalService
 {
-    private static readonly Dictionary<string, string> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, ApprovalActionType> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Pending"] = "Pending",
-        ["Approved"] = "Approved",
-        ["Rejected"] = "Rejected"
+        [nameof(ApprovalActionType.Pending)] = ApprovalActionType.Pending,
+        [nameof(ApprovalActionType.Approved)] = ApprovalActionType.Approved,
+        [nameof(ApprovalActionType.Rejected)] = ApprovalActionType.Rejected
     };
 
     public async Task<IReadOnlyList<ApprovalDto>> GetAllAsync(CancellationToken cancellationToken)
@@ -111,11 +112,11 @@ public sealed class ApprovalService(
         return ServiceResult<ApprovalDto>.Failure(message, ServiceErrorType.Validation);
     }
 
-    private static bool TryNormalizeStatus(string? rawStatus, out string status)
+    private static bool TryNormalizeStatus(string? rawStatus, out ApprovalActionType status)
     {
         if (string.IsNullOrWhiteSpace(rawStatus))
         {
-            status = "Pending";
+            status = ApprovalActionType.Pending;
             return true;
         }
 

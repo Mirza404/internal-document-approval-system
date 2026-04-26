@@ -22,8 +22,8 @@ public sealed record DocumentDto(
             document.Description,
             document.DocumentTypeId,
             document.CreatedByUserId,
-            document.Status,
-            document.Priority,
+            document.Status.ToString(),
+            document.Priority.ToString(),
             document.CreatedAt,
             document.UpdatedAt,
             document.ApprovedAt);

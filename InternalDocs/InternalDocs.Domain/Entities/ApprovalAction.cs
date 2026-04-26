@@ -1,11 +1,13 @@
 namespace InternalDocs.Domain.Entities;
 
+using InternalDocs.Domain.Enums;
+
 public class ApprovalAction
 {
     public Guid Id { get; set; }
     public Guid DocumentId { get; set; }
     public Guid ApprovedByUserId { get; set; }
-    public string Action { get; set; } = "Pending"; // Approved, Rejected, Pending
+    public ApprovalActionType Action { get; set; } = ApprovalActionType.Pending;
     public string? Comments { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     

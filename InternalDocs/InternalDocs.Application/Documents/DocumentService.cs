@@ -2,6 +2,7 @@ using InternalDocs.Application.Abstractions.Repositories;
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Common;
 using InternalDocs.Domain.Entities;
+using InternalDocs.Domain.Enums;
 
 namespace InternalDocs.Application.Documents;
 
@@ -10,23 +11,23 @@ public sealed class DocumentService(
     IDocumentTypeRepository documentTypes,
     IUserRepository users) : IDocumentService
 {
-    private static readonly Dictionary<string, string> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, DocumentStatus> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Draft"] = "Draft",
-        ["InReview"] = "InReview",
-        ["PendingApproval"] = "PendingApproval",
-        ["UnderReview"] = "UnderReview",
-        ["ChangesRequested"] = "ChangesRequested",
-        ["Approved"] = "Approved",
-        ["Rejected"] = "Rejected"
+        [nameof(DocumentStatus.Draft)] = DocumentStatus.Draft,
+        [nameof(DocumentStatus.InReview)] = DocumentStatus.InReview,
+        [nameof(DocumentStatus.PendingApproval)] = DocumentStatus.PendingApproval,
+        [nameof(DocumentStatus.UnderReview)] = DocumentStatus.UnderReview,
+        [nameof(DocumentStatus.ChangesRequested)] = DocumentStatus.ChangesRequested,
+        [nameof(DocumentStatus.Approved)] = DocumentStatus.Approved,
+        [nameof(DocumentStatus.Rejected)] = DocumentStatus.Rejected
     };
 
-    private static readonly Dictionary<string, string> AllowedPriorities = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, DocumentPriority> AllowedPriorities = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["Low"] = "Low",
-        ["Normal"] = "Normal",
-        ["High"] = "High",
-        ["Urgent"] = "Urgent"
+        [nameof(DocumentPriority.Low)] = DocumentPriority.Low,
+        [nameof(DocumentPriority.Normal)] = DocumentPriority.Normal,
+        [nameof(DocumentPriority.High)] = DocumentPriority.High,
+        [nameof(DocumentPriority.Urgent)] = DocumentPriority.Urgent
     };
 
     public async Task<IReadOnlyList<DocumentDto>> GetAllAsync(CancellationToken cancellationToken)
@@ -84,7 +85,7 @@ public sealed class DocumentService(
             Description = command.Description?.Trim() ?? string.Empty,
             DocumentTypeId = command.DocumentTypeId.Value,
             CreatedByUserId = command.CreatedByUserId.Value,
-            Status = "Draft",
+            Status = DocumentStatus.Draft,
             Priority = priority,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = null,
@@ -192,16 +193,16 @@ public sealed class DocumentService(
         return ServiceResult<DocumentDto>.Failure(message, ServiceErrorType.Validation);
     }
 
-    private static bool TryNormalizeStatus(string rawStatus, out string status)
+    private static bool TryNormalizeStatus(string rawStatus, out DocumentStatus status)
     {
         return AllowedStatuses.TryGetValue(rawStatus.Trim(), out status!);
     }
 
-    private static bool TryNormalizePriority(string? rawPriority, out string priority)
+    private static bool TryNormalizePriority(string? rawPriority, out DocumentPriority priority)
     {
         if (string.IsNullOrWhiteSpace(rawPriority))
         {
-            priority = "Normal";
+            priority = DocumentPriority.Normal;
             return true;
         }
 

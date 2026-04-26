@@ -16,7 +16,7 @@ public sealed record ApprovalDto(
             approvalAction.Id,
             approvalAction.DocumentId,
             approvalAction.ApprovedByUserId,
-            approvalAction.Action.ToLowerInvariant(),
+            approvalAction.Action.ToString().ToLowerInvariant(),
             approvalAction.Comments,
             approvalAction.CreatedAt);
     }
