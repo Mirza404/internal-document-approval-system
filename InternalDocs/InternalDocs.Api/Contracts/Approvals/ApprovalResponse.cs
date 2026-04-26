@@ -1,4 +1,4 @@
-using InternalDocs.Domain.Entities;
+using InternalDocs.Application.Approvals;
 
 namespace InternalDocs.Api.Contracts.Approvals;
 
@@ -11,14 +11,14 @@ public sealed class ApprovalResponse
     public string? Comments { get; init; }
     public DateTime CreatedAt { get; init; }
 
-    public static ApprovalResponse FromEntity(ApprovalAction approvalAction)
+    public static ApprovalResponse FromDto(ApprovalDto approvalAction)
     {
         return new ApprovalResponse
         {
             Id = approvalAction.Id,
             DocumentId = approvalAction.DocumentId,
-            ApproverId = approvalAction.ApprovedByUserId,
-            Status = approvalAction.Action.ToLowerInvariant(),
+            ApproverId = approvalAction.ApproverId,
+            Status = approvalAction.Status,
             Comments = approvalAction.Comments,
             CreatedAt = approvalAction.CreatedAt
         };
