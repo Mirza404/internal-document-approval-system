@@ -5,6 +5,7 @@ using InternalDocs.Application.Approvals;
 using InternalDocs.Application.Common;
 using InternalDocs.Application.Documents;
 using InternalDocs.Domain.Entities;
+using InternalDocs.Domain.Enums;
 using Xunit;
 
 public sealed class ApplicationServiceTests
@@ -37,7 +38,7 @@ public sealed class ApplicationServiceTests
                 Id = approvalId,
                 DocumentId = Guid.NewGuid(),
                 ApprovedByUserId = Guid.NewGuid(),
-                Action = "Pending",
+                Action = ApprovalActionType.Pending,
                 CreatedAt = DateTime.UtcNow
             }
         };
@@ -54,12 +55,62 @@ public sealed class ApplicationServiceTests
 
         Assert.False(result.Succeeded);
         Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
-        Assert.Equal("Pending", approvalRepository.Approval.Action);
+        Assert.Equal(ApprovalActionType.Pending, approvalRepository.Approval.Action);
+    }
+
+    [Fact]
+    public async Task CreateDocumentAsync_UsesStrongDefaultPriority()
+    {
+        var documentTypeId = Guid.NewGuid();
+        var creatorId = Guid.NewGuid();
+        var documentRepository = new FakeDocumentRepository();
+        var service = new DocumentService(
+            documentRepository,
+            new FakeDocumentTypeRepository(documentTypeId),
+            new FakeUserRepository(creatorId));
+
+        var result = await service.CreateAsync(
+            new CreateDocumentCommand("Request", null, documentTypeId, creatorId, null),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(documentRepository.AddedDocument);
+        Assert.Equal(DocumentStatus.Draft, documentRepository.AddedDocument.Status);
+        Assert.Equal(DocumentPriority.Normal, documentRepository.AddedDocument.Priority);
+        Assert.Equal("Draft", result.Value!.Status);
+        Assert.Equal("Normal", result.Value.Priority);
+    }
+
+    [Fact]
+    public async Task CreateApprovalAsync_ParsesStatusIntoStrongActionType()
+    {
+        var documentId = Guid.NewGuid();
+        var approverId = Guid.NewGuid();
+        var approvalRepository = new FakeApprovalActionRepository();
+        var service = new ApprovalService(
+            approvalRepository,
+            new FakeDocumentRepository(new Document { Id = documentId }),
+            new FakeUserRepository(approverId));
+
+        var result = await service.CreateAsync(
+            new CreateApprovalCommand(documentId, approverId, "approved", "Looks good"),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(approvalRepository.AddedApproval);
+        Assert.Equal(ApprovalActionType.Approved, approvalRepository.AddedApproval.Action);
+        Assert.Equal("approved", result.Value!.Status);
     }
 
     private sealed class FakeDocumentRepository : IDocumentRepository
     {
-        public Document? Document { get; init; }
+        public FakeDocumentRepository(Document? document = null)
+        {
+            Document = document;
+        }
+
+        public Document? Document { get; }
+        public Document? AddedDocument { get; private set; }
 
         public Task<List<Document>> GetAllAsync(CancellationToken cancellationToken)
         {
@@ -73,6 +124,7 @@ public sealed class ApplicationServiceTests
 
         public void Add(Document document)
         {
+            AddedDocument = document;
         }
 
         public void Remove(Document document)
@@ -88,6 +140,7 @@ public sealed class ApplicationServiceTests
     private sealed class FakeApprovalActionRepository : IApprovalActionRepository
     {
         public ApprovalAction Approval { get; init; } = new();
+        public ApprovalAction? AddedApproval { get; private set; }
 
         public Task<List<ApprovalAction>> GetAllAsync(CancellationToken cancellationToken)
         {
@@ -101,6 +154,7 @@ public sealed class ApplicationServiceTests
 
         public void Add(ApprovalAction approvalAction)
         {
+            AddedApproval = approvalAction;
         }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)
@@ -111,17 +165,31 @@ public sealed class ApplicationServiceTests
 
     private sealed class FakeDocumentTypeRepository : IDocumentTypeRepository
     {
+        private readonly Guid? existingId;
+
+        public FakeDocumentTypeRepository(Guid? existingId = null)
+        {
+            this.existingId = existingId;
+        }
+
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         {
-            return Task.FromResult(false);
+            return Task.FromResult(existingId == id);
         }
     }
 
     private sealed class FakeUserRepository : IUserRepository
     {
+        private readonly Guid? existingId;
+
+        public FakeUserRepository(Guid? existingId = null)
+        {
+            this.existingId = existingId;
+        }
+
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         {
-            return Task.FromResult(false);
+            return Task.FromResult(existingId == id);
         }
     }
 }
