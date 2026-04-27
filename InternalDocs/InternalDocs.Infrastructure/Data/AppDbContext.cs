@@ -28,8 +28,13 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
             entity.Property(e => e.FullName).IsRequired().HasMaxLength(256);
             entity.Property(e => e.PasswordHash).IsRequired();
+            entity.Property(e => e.MicrosoftObjectId).HasMaxLength(128);
             entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
             entity.HasIndex(e => e.Email).IsUnique();
+            // Partial unique index: only enforces uniqueness when MicrosoftObjectId is set
+            entity.HasIndex(e => e.MicrosoftObjectId)
+                  .IsUnique()
+                  .HasFilter("\"MicrosoftObjectId\" IS NOT NULL");
         });
 
         // DocumentType Configuration
