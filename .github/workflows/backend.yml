@@ -44,4 +44,4 @@ jobs:
         run: dotnet build InternalDocs.slnx --configuration Release --no-restore
 
       - name: Test suite
-        run: dotnet test InternalDocs.slnx --configuration Release --no-build --verbosity normal
+        run: dotnet test InternalDocs/InternalDocs.Tests/InternalDocs.Tests.csproj --configuration Release --no-build --verbosity normal
