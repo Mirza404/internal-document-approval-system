@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import heroImage from "./assets/hero.png";
-import { microsoftLogin, microsoftRegister, type AuthResponse } from "./api/auth";
+import {
+  microsoftLogin,
+  microsoftRegister,
+  type AuthResponse,
+} from "./api/auth";
 import Pill from "./components/ui/Pill";
 import { reviewQueue } from "./mockData/reviewQueue";
 import { activityFeed } from "./mockData/activityFeed";
@@ -34,50 +38,77 @@ function App() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const hash = new URLSearchParams(window.location.hash.slice(1));
-    const microsoftAccessToken = hash.get("access_token");
+    let isMounted = true;
 
-    if (!microsoftAccessToken) {
-      return;
-    }
+    const authenticateMicrosoftRedirect = async () => {
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const microsoftAccessToken = hash.get("access_token");
 
-    const returnedState = hash.get("state");
-    const expectedState = sessionStorage.getItem(oauthStateKey);
-    sessionStorage.removeItem(oauthStateKey);
-    window.history.replaceState(null, document.title, window.location.pathname);
+      if (!microsoftAccessToken) {
+        return;
+      }
 
-    if (!returnedState || returnedState !== expectedState) {
-      setAuthError("Microsoft sign-in could not be verified. Please try again.");
-      return;
-    }
+      const returnedState = hash.get("state");
+      const expectedState = sessionStorage.getItem(oauthStateKey);
+      sessionStorage.removeItem(oauthStateKey);
+      window.history.replaceState(
+        null,
+        document.title,
+        window.location.pathname,
+      );
 
-    setAuthStatus("loading");
-    setAuthError(null);
-
-    microsoftLogin(microsoftAccessToken)
-      .catch((error: unknown) => {
-        if (
-          typeof error === "object" &&
-          error !== null &&
-          "response" in error &&
-          (error as { response?: { status?: number } }).response?.status === 404
-        ) {
-          return microsoftRegister(microsoftAccessToken);
+      if (!returnedState || returnedState !== expectedState) {
+        if (isMounted) {
+          setAuthError(
+            "Microsoft sign-in could not be verified. Please try again.",
+          );
         }
+        return;
+      }
 
-        throw error;
-      })
-      .then((response) => {
+      if (isMounted) {
+        setAuthStatus("loading");
+        setAuthError(null);
+      }
+
+      try {
+        const response = await microsoftLogin(microsoftAccessToken).catch(
+          (error: unknown) => {
+            if (
+              typeof error === "object" &&
+              error !== null &&
+              "response" in error &&
+              (error as { response?: { status?: number } }).response?.status ===
+                404
+            ) {
+              return microsoftRegister(microsoftAccessToken);
+            }
+
+            throw error;
+          },
+        );
+
         localStorage.setItem("token", response.accessToken);
         localStorage.setItem(authUserKey, JSON.stringify(response));
-        setAuthUser(response);
-      })
-      .catch((error: unknown) => {
-        setAuthError(getAuthErrorMessage(error));
-      })
-      .finally(() => {
-        setAuthStatus("idle");
-      });
+        if (isMounted) {
+          setAuthUser(response);
+        }
+      } catch (error: unknown) {
+        if (isMounted) {
+          setAuthError(getAuthErrorMessage(error));
+        }
+      } finally {
+        if (isMounted) {
+          setAuthStatus("idle");
+        }
+      }
+    };
+
+    void authenticateMicrosoftRedirect();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleMicrosoftLogin = () => {
@@ -130,13 +161,10 @@ function App() {
 }
 
 function getAuthErrorMessage(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error
-  ) {
-    const response = (error as { response?: { data?: unknown; status?: number } })
-      .response;
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (
+      error as { response?: { data?: unknown; status?: number } }
+    ).response;
 
     if (typeof response?.data === "string" && response.data.trim()) {
       return response.data;
@@ -179,7 +207,9 @@ function LandingPage({ authError, authStatus, onLogin }: LandingPageProps) {
               disabled={authStatus === "loading"}
               className="inline-flex min-h-12 items-center justify-center rounded-lg bg-cyan-400 px-5 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {authStatus === "loading" ? "Signing in..." : "Sign in with Microsoft"}
+              {authStatus === "loading"
+                ? "Signing in..."
+                : "Sign in with Microsoft"}
             </button>
           </div>
 

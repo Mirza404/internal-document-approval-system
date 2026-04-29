@@ -8,7 +8,7 @@ public class ApprovalAction
     public string Action { get; set; } = "Pending"; // Approved, Rejected, Pending
     public string? Comments { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
+
     // Foreign keys
     public Document Document { get; set; } = null!;
     public User ApprovedByUser { get; set; } = null!;

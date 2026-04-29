@@ -9,13 +9,13 @@ public class AppDbContext : DbContext
     {
     }
 
-    public DbSet<User> Users { get; set; }
-    public DbSet<Document> Documents { get; set; }
-    public DbSet<DocumentType> DocumentTypes { get; set; }
-    public DbSet<DocumentVersion> DocumentVersions { get; set; }
-    public DbSet<ApprovalAction> ApprovalActions { get; set; }
-    public DbSet<Notification> Notifications { get; set; }
-    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<User> Users { get; set; } = null!;
+    public DbSet<Document> Documents { get; set; } = null!;
+    public DbSet<DocumentType> DocumentTypes { get; set; } = null!;
+    public DbSet<DocumentVersion> DocumentVersions { get; set; } = null!;
+    public DbSet<ApprovalAction> ApprovalActions { get; set; } = null!;
+    public DbSet<Notification> Notifications { get; set; } = null!;
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

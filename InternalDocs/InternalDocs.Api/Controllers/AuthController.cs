@@ -59,9 +59,9 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         {
             return result.ErrorType switch
             {
-                ServiceErrorType.Conflict   => Conflict(result.Error),
+                ServiceErrorType.Conflict => Conflict(result.Error),
                 ServiceErrorType.Validation => Unauthorized(result.Error),
-                _                           => BadRequest(result.Error)
+                _ => BadRequest(result.Error)
             };
         }
 
@@ -90,9 +90,9 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         {
             return result.ErrorType switch
             {
-                ServiceErrorType.NotFound   => NotFound(result.Error),
+                ServiceErrorType.NotFound => NotFound(result.Error),
                 ServiceErrorType.Validation => Unauthorized(result.Error),
-                _                           => BadRequest(result.Error)
+                _ => BadRequest(result.Error)
             };
         }
 

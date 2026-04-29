@@ -154,7 +154,7 @@ public sealed class AuthService(
         var dto = new AuthDto(user.Id, user.Email, user.FullName, user.Role, jwt);
         return ServiceResult<AuthDto>.Success(dto);
     }
-    
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

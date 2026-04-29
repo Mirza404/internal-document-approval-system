@@ -10,7 +10,7 @@ public class AuditLog
     public string? OldValues { get; set; }
     public string? NewValues { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
+
     // Foreign keys
     public User User { get; set; } = null!;
 }

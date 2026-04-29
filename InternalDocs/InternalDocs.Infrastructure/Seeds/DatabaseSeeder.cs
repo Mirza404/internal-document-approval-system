@@ -15,7 +15,7 @@ public static class DatabaseSeeder
         }
 
         // Get password from environment variable
-        var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") 
+        var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
             ?? throw new InvalidOperationException("ADMIN_PASSWORD environment variable is not set");
 
         var adminUser = new User
