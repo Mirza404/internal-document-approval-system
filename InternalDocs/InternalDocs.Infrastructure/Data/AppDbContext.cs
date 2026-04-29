@@ -1,10 +1,9 @@
-using InternalDocs.Application.Abstractions.Data;
 using InternalDocs.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace InternalDocs.Infrastructure.Data;
 
-public class AppDbContext : DbContext, IAppDbContext
+public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {

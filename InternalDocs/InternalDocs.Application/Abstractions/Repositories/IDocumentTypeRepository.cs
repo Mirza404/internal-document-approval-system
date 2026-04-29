@@ -1,6 +1,6 @@
 namespace InternalDocs.Application.Abstractions.Repositories;
 
-public interface IUserRepository
+public interface IDocumentTypeRepository
 {
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken);
 }
