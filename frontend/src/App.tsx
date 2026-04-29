@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import heroImage from "./assets/hero.png";
+import { microsoftLogin, microsoftRegister, type AuthResponse } from "./api/auth";
 import Pill from "./components/ui/Pill";
 import { reviewQueue } from "./mockData/reviewQueue";
 import { activityFeed } from "./mockData/activityFeed";
@@ -8,7 +10,209 @@ import { stageStyles } from "./components/styles/StageStyles";
 import { priorityStyles } from "./components/styles/PriorityStyles";
 import { filterOptions } from "./components/utils/FilterOptions";
 
+const oauthStateKey = "microsoftOAuthState";
+const authUserKey = "authUser";
+
 function App() {
+  const [authUser, setAuthUser] = useState<AuthResponse | null>(() => {
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem(authUserKey);
+
+    if (!token || !storedUser) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(storedUser) as AuthResponse;
+    } catch {
+      localStorage.removeItem("token");
+      localStorage.removeItem(authUserKey);
+      return null;
+    }
+  });
+  const [authStatus, setAuthStatus] = useState("idle");
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const microsoftAccessToken = hash.get("access_token");
+
+    if (!microsoftAccessToken) {
+      return;
+    }
+
+    const returnedState = hash.get("state");
+    const expectedState = sessionStorage.getItem(oauthStateKey);
+    sessionStorage.removeItem(oauthStateKey);
+    window.history.replaceState(null, document.title, window.location.pathname);
+
+    if (!returnedState || returnedState !== expectedState) {
+      setAuthError("Microsoft sign-in could not be verified. Please try again.");
+      return;
+    }
+
+    setAuthStatus("loading");
+    setAuthError(null);
+
+    microsoftLogin(microsoftAccessToken)
+      .catch((error: unknown) => {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "response" in error &&
+          (error as { response?: { status?: number } }).response?.status === 404
+        ) {
+          return microsoftRegister(microsoftAccessToken);
+        }
+
+        throw error;
+      })
+      .then((response) => {
+        localStorage.setItem("token", response.accessToken);
+        localStorage.setItem(authUserKey, JSON.stringify(response));
+        setAuthUser(response);
+      })
+      .catch((error: unknown) => {
+        setAuthError(getAuthErrorMessage(error));
+      })
+      .finally(() => {
+        setAuthStatus("idle");
+      });
+  }, []);
+
+  const handleMicrosoftLogin = () => {
+    const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID;
+    const tenantId = import.meta.env.VITE_MICROSOFT_TENANT_ID;
+    const redirectUri =
+      import.meta.env.VITE_MICROSOFT_REDIRECT_URI || window.location.origin;
+
+    if (!clientId || !tenantId) {
+      setAuthError(
+        "Microsoft sign-in is not configured. Set VITE_MICROSOFT_CLIENT_ID and VITE_MICROSOFT_TENANT_ID.",
+      );
+      return;
+    }
+
+    const state = crypto.randomUUID();
+    sessionStorage.setItem(oauthStateKey, state);
+
+    const authorizeUrl = new URL(
+      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`,
+    );
+    authorizeUrl.searchParams.set("client_id", clientId);
+    authorizeUrl.searchParams.set("response_type", "token");
+    authorizeUrl.searchParams.set("redirect_uri", redirectUri);
+    authorizeUrl.searchParams.set("response_mode", "fragment");
+    authorizeUrl.searchParams.set("scope", "openid profile email User.Read");
+    authorizeUrl.searchParams.set("state", state);
+    authorizeUrl.searchParams.set("prompt", "select_account");
+
+    window.location.assign(authorizeUrl.toString());
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem(authUserKey);
+    setAuthUser(null);
+  };
+
+  if (!authUser) {
+    return (
+      <LandingPage
+        authError={authError}
+        authStatus={authStatus}
+        onLogin={handleMicrosoftLogin}
+      />
+    );
+  }
+
+  return <Dashboard authUser={authUser} onLogout={handleLogout} />;
+}
+
+function getAuthErrorMessage(error: unknown) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error
+  ) {
+    const response = (error as { response?: { data?: unknown; status?: number } })
+      .response;
+
+    if (typeof response?.data === "string" && response.data.trim()) {
+      return response.data;
+    }
+
+    if (response?.status) {
+      return `Microsoft sign-in failed with status ${response.status}.`;
+    }
+  }
+
+  return "Microsoft sign-in failed. Make sure the backend is running and your account is active.";
+}
+
+interface LandingPageProps {
+  authError: string | null;
+  authStatus: string;
+  onLogin: () => void;
+}
+
+function LandingPage({ authError, authStatus, onLogin }: LandingPageProps) {
+  return (
+    <main className="min-h-screen bg-slate-950 text-white">
+      <section className="mx-auto grid min-h-screen max-w-6xl gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8">
+        <div className="py-12">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-300">
+            InternalDocs
+          </p>
+          <h1 className="mt-6 max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">
+            Secure document approvals for IUS teams.
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
+            Review queues, approval history, and internal workflow actions stay
+            behind Microsoft sign-in.
+          </p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={onLogin}
+              disabled={authStatus === "loading"}
+              className="inline-flex min-h-12 items-center justify-center rounded-lg bg-cyan-400 px-5 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {authStatus === "loading" ? "Signing in..." : "Sign in with Microsoft"}
+            </button>
+          </div>
+
+          {authError ? (
+            <p className="mt-5 max-w-xl rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+              {authError}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="relative min-h-[360px] overflow-hidden rounded-lg border border-white/10 bg-slate-900 shadow-2xl shadow-slate-950/60">
+          <img
+            src={heroImage}
+            alt="Document workflow dashboard preview"
+            className="h-full min-h-[360px] w-full object-cover"
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent p-6">
+            <p className="text-sm font-medium text-slate-200">
+              Approval status, ownership, and recent activity in one workspace.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+interface DashboardProps {
+  authUser: AuthResponse;
+  onLogout: () => void;
+}
+
+function Dashboard({ authUser, onLogout }: DashboardProps) {
   const [filter, setFilter] = useState<(typeof filterOptions)[number]>("All");
 
   const filteredQueue = useMemo(() => {
@@ -38,6 +242,16 @@ function App() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
+              <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
+                {authUser.fullName} · {authUser.role}
+              </div>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+              >
+                Sign out
+              </button>
               <button className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-card transition hover:bg-brand-700">
                 New approval flow
               </button>
