@@ -2,11 +2,13 @@ using InternalDocs.Api.Contracts.Approvals;
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Approvals;
 using InternalDocs.Application.Common;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InternalDocs.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("approvals")]
 public sealed class ApprovalsController(IApprovalService approvalService) : ControllerBase
 {

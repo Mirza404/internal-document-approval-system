@@ -71,14 +71,7 @@ public sealed class AuthService(
                 ServiceErrorType.Conflict);
         }
 
-        // 5. Create the new local user
-        var allowedRoles = new[] { "Employee", "Approver", "Admin" };
-        if (!allowedRoles.Contains(command.Role))
-        {
-            return ServiceResult<AuthDto>.Failure(
-                "Invalid role. Allowed values: Employee, Approver, Admin.",
-                ServiceErrorType.Validation);
-        }
+        // 5. Create the new local user. Elevated roles must be assigned by an admin-controlled flow.
         var newUser = new User
         {
             Id = Guid.NewGuid(),
@@ -86,7 +79,7 @@ public sealed class AuthService(
             FullName = profile.DisplayName ?? email,
             PasswordHash = string.Empty, // OAuth-only users have no local password
             MicrosoftObjectId = profile.Id,
-            Role = command.Role,
+            Role = "Employee",
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -140,6 +133,13 @@ public sealed class AuthService(
             return ServiceResult<AuthDto>.Failure(
                 "No account found for this Microsoft identity. Please register first.",
                 ServiceErrorType.NotFound);
+        }
+
+        if (!user.IsActive)
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "This account is inactive.",
+                ServiceErrorType.Validation);
         }
 
         // 3. Keep the display name in sync
