@@ -1,0 +1,47 @@
+name: Backend checks
+
+on:
+  pull_request:
+    paths:
+      - "InternalDocs/**"
+      - "InternalDocs.slnx"
+      - ".github/workflows/backend.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "InternalDocs/**"
+      - "InternalDocs.slnx"
+      - ".github/workflows/backend.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: .NET
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore InternalDocs.slnx
+
+      - name: Dependency audit
+        run: dotnet list InternalDocs.slnx package --vulnerable --include-transitive
+
+      - name: Format check
+        run: dotnet format InternalDocs.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build InternalDocs.slnx --configuration Release --no-restore
+
+      - name: Test suite
+        run: dotnet test InternalDocs.slnx --configuration Release --no-build --verbosity normal
