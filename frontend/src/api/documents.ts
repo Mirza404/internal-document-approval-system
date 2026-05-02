@@ -53,6 +53,7 @@ export interface UpdateDocumentRequest {
   budgetCode?: string | null;
   counterparty?: string | null;
   attachmentNote?: string | null;
+  changeNotes?: string | null;
 }
 
 // API functions
