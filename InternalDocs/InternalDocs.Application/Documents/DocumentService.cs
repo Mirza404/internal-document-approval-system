@@ -176,6 +176,7 @@ public sealed class DocumentService(
             return Validation("You can only update your own documents.");
         }
 
+        var isResubmission = false;
         DocumentType? documentType = null;
         if (command.DocumentTypeId.HasValue)
         {
@@ -219,6 +220,17 @@ public sealed class DocumentService(
                 return Validation("Status must be Draft, InReview, PendingApproval, UnderReview, ChangesRequested, Approved, or Rejected.");
             }
 
+            if (status != "PendingApproval")
+            {
+                return Validation("Employees can only resubmit documents to PendingApproval.");
+            }
+
+            if (!string.Equals(document.Status, "ChangesRequested", StringComparison.OrdinalIgnoreCase))
+            {
+                return Validation("Documents can only be resubmitted when changes are requested.");
+            }
+
+            isResubmission = true;
             document.Status = status;
         }
 
@@ -246,6 +258,19 @@ public sealed class DocumentService(
         }
 
         document.UpdatedAt = DateTime.UtcNow;
+
+        if (isResubmission)
+        {
+            document.Versions.Add(new DocumentVersion
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = document.Id,
+                VersionNumber = GetNextVersionNumber(document),
+                Content = CreateVersionSnapshot(document),
+                ChangeNotes = NormalizeOptional(command.ChangeNotes) ?? "Resubmitted after changes requested",
+                CreatedAt = document.UpdatedAt.Value
+            });
+        }
 
         await documents.SaveChangesAsync(cancellationToken);
         return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
@@ -389,6 +414,13 @@ public sealed class DocumentService(
     private static string? NormalizeOptional(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static int GetNextVersionNumber(Document document)
+    {
+        return document.Versions.Count == 0
+            ? 1
+            : document.Versions.Max(version => version.VersionNumber) + 1;
     }
 
     private static string CreateVersionSnapshot(Document document)
