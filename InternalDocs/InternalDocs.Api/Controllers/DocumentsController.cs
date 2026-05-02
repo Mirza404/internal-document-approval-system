@@ -129,7 +129,8 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             request.Amount,
             request.BudgetCode,
             request.Counterparty,
-            request.AttachmentNote);
+            request.AttachmentNote,
+            request.ChangeNotes);
 
         var result = await documentService.UpdateAsync(id, command, cancellationToken);
         return ToDocumentResponse(result);
