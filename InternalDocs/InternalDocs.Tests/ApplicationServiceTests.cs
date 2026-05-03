@@ -178,9 +178,20 @@ public sealed class ApplicationServiceTests
             return Task.FromResult(Document is null ? [] : new List<Document> { Document });
         }
 
+        public Task<List<Document>> GetByCreatedByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                Document?.CreatedByUserId == userId ? new List<Document> { Document } : []);
+        }
+
         public Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             return Task.FromResult(Document?.Id == id ? Document : null);
+        }
+
+        public Task<Document?> GetByIdAndCreatedByUserIdAsync(Guid id, Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Document?.Id == id && Document.CreatedByUserId == userId ? Document : null);
         }
 
         public void Add(Document document)
