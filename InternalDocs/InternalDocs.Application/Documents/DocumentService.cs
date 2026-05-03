@@ -36,9 +36,26 @@ public sealed class DocumentService(
         return result.Select(DocumentDto.FromEntity).ToList();
     }
 
+    public async Task<IReadOnlyList<DocumentDto>> GetByCreatedByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var result = await documents.GetByCreatedByUserIdAsync(userId, cancellationToken);
+        return result.Select(DocumentDto.FromEntity).ToList();
+    }
+
     public async Task<ServiceResult<DocumentDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var document = await documents.GetByIdAsync(id, cancellationToken);
+        return document is null
+            ? ServiceResult<DocumentDto>.Failure("Document was not found.", ServiceErrorType.NotFound)
+            : ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
+    }
+
+    public async Task<ServiceResult<DocumentDto>> GetByIdForUserAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var document = await documents.GetByIdAndCreatedByUserIdAsync(id, userId, cancellationToken);
         return document is null
             ? ServiceResult<DocumentDto>.Failure("Document was not found.", ServiceErrorType.NotFound)
             : ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
