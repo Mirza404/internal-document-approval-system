@@ -9,13 +9,13 @@ public class AppDbContext : DbContext
     {
     }
 
-    public DbSet<User> Users { get; set; }
-    public DbSet<Document> Documents { get; set; }
-    public DbSet<DocumentType> DocumentTypes { get; set; }
-    public DbSet<DocumentVersion> DocumentVersions { get; set; }
-    public DbSet<ApprovalAction> ApprovalActions { get; set; }
-    public DbSet<Notification> Notifications { get; set; }
-    public DbSet<AuditLog> AuditLogs { get; set; }
+    public DbSet<User> Users { get; set; } = null!;
+    public DbSet<Document> Documents { get; set; } = null!;
+    public DbSet<DocumentType> DocumentTypes { get; set; } = null!;
+    public DbSet<DocumentVersion> DocumentVersions { get; set; } = null!;
+    public DbSet<ApprovalAction> ApprovalActions { get; set; } = null!;
+    public DbSet<Notification> Notifications { get; set; } = null!;
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,8 +28,13 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
             entity.Property(e => e.FullName).IsRequired().HasMaxLength(256);
             entity.Property(e => e.PasswordHash).IsRequired();
+            entity.Property(e => e.MicrosoftObjectId).HasMaxLength(128);
             entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
             entity.HasIndex(e => e.Email).IsUnique();
+            // Partial unique index: only enforces uniqueness when MicrosoftObjectId is set
+            entity.HasIndex(e => e.MicrosoftObjectId)
+                  .IsUnique()
+                  .HasFilter("\"MicrosoftObjectId\" IS NOT NULL");
         });
 
         // DocumentType Configuration

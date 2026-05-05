@@ -17,12 +17,12 @@ namespace InternalDocs.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("InternalDocs.Api.Models.ApprovalAction", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.ApprovalAction", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -55,7 +55,7 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.ToTable("ApprovalActions");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.AuditLog", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -95,7 +95,7 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.Document", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -147,7 +147,7 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.ToTable("Documents");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.DocumentType", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentType", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -174,7 +174,7 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.ToTable("DocumentTypes");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.DocumentVersion", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentVersion", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -204,7 +204,7 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.ToTable("DocumentVersions");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.Notification", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.Notification", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -246,7 +246,7 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.ToTable("Notifications");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.User", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -268,6 +268,10 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("MicrosoftObjectId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -285,18 +289,22 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("MicrosoftObjectId")
+                        .IsUnique()
+                        .HasFilter("\"MicrosoftObjectId\" IS NOT NULL");
+
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.ApprovalAction", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.ApprovalAction", b =>
                 {
-                    b.HasOne("InternalDocs.Api.Models.User", "ApprovedByUser")
+                    b.HasOne("InternalDocs.Domain.Entities.User", "ApprovedByUser")
                         .WithMany("ApprovalActions")
                         .HasForeignKey("ApprovedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("InternalDocs.Api.Models.Document", "Document")
+                    b.HasOne("InternalDocs.Domain.Entities.Document", "Document")
                         .WithMany("ApprovalActions")
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -307,9 +315,9 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.Navigation("Document");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.AuditLog", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.AuditLog", b =>
                 {
-                    b.HasOne("InternalDocs.Api.Models.User", "User")
+                    b.HasOne("InternalDocs.Domain.Entities.User", "User")
                         .WithMany("AuditLogs")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -318,15 +326,15 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.Document", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.Document", b =>
                 {
-                    b.HasOne("InternalDocs.Api.Models.User", "CreatedByUser")
+                    b.HasOne("InternalDocs.Domain.Entities.User", "CreatedByUser")
                         .WithMany("CreatedDocuments")
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("InternalDocs.Api.Models.DocumentType", "DocumentType")
+                    b.HasOne("InternalDocs.Domain.Entities.DocumentType", "DocumentType")
                         .WithMany("Documents")
                         .HasForeignKey("DocumentTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -337,9 +345,9 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.Navigation("DocumentType");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.DocumentVersion", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentVersion", b =>
                 {
-                    b.HasOne("InternalDocs.Api.Models.Document", "Document")
+                    b.HasOne("InternalDocs.Domain.Entities.Document", "Document")
                         .WithMany("Versions")
                         .HasForeignKey("DocumentId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -348,9 +356,9 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.Navigation("Document");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.Notification", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.Notification", b =>
                 {
-                    b.HasOne("InternalDocs.Api.Models.User", "User")
+                    b.HasOne("InternalDocs.Domain.Entities.User", "User")
                         .WithMany("Notifications")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -359,19 +367,19 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.Document", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.Document", b =>
                 {
                     b.Navigation("ApprovalActions");
 
                     b.Navigation("Versions");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.DocumentType", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentType", b =>
                 {
                     b.Navigation("Documents");
                 });
 
-            modelBuilder.Entity("InternalDocs.Api.Models.User", b =>
+            modelBuilder.Entity("InternalDocs.Domain.Entities.User", b =>
                 {
                     b.Navigation("ApprovalActions");
 

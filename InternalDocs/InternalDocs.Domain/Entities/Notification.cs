@@ -10,7 +10,7 @@ public class Notification
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
-    
+
     // Foreign keys
     public User User { get; set; } = null!;
 }

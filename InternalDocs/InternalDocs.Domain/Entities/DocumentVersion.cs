@@ -8,7 +8,7 @@ public class DocumentVersion
     public string Content { get; set; } = string.Empty;
     public string? ChangeNotes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
+
     // Foreign keys
     public Document Document { get; set; } = null!;
 }
