@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { InteractionStatus } from "@azure/msal-browser";
+import { useIsAuthenticated, useMsal } from "@azure/msal-react";
 import heroImage from "./assets/hero.png";
-import {
-  microsoftLogin,
-  microsoftRegister,
-  type AuthResponse,
-} from "./api/auth";
+import { getCurrentUser, type CurrentUserResponse } from "./api/auth";
+import { loginRequest } from "./auth/msal";
 import Pill from "./components/ui/Pill";
 import { reviewQueue } from "./mockData/reviewQueue";
 import { activityFeed } from "./mockData/activityFeed";
@@ -14,22 +13,21 @@ import { stageStyles } from "./components/styles/StageStyles";
 import { priorityStyles } from "./components/styles/PriorityStyles";
 import { filterOptions } from "./components/utils/FilterOptions";
 
-const oauthStateKey = "microsoftOAuthState";
 const authUserKey = "authUser";
 
 function App() {
-  const [authUser, setAuthUser] = useState<AuthResponse | null>(() => {
-    const token = localStorage.getItem("token");
+  const { instance, inProgress } = useMsal();
+  const isAuthenticated = useIsAuthenticated();
+  const [authUser, setAuthUser] = useState<CurrentUserResponse | null>(() => {
     const storedUser = localStorage.getItem(authUserKey);
 
-    if (!token || !storedUser) {
+    if (!storedUser) {
       return null;
     }
 
     try {
-      return JSON.parse(storedUser) as AuthResponse;
+      return JSON.parse(storedUser) as CurrentUserResponse;
     } catch {
-      localStorage.removeItem("token");
       localStorage.removeItem(authUserKey);
       return null;
     }
@@ -40,29 +38,8 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
-    const authenticateMicrosoftRedirect = async () => {
-      const hash = new URLSearchParams(window.location.hash.slice(1));
-      const microsoftAccessToken = hash.get("access_token");
-
-      if (!microsoftAccessToken) {
-        return;
-      }
-
-      const returnedState = hash.get("state");
-      const expectedState = sessionStorage.getItem(oauthStateKey);
-      sessionStorage.removeItem(oauthStateKey);
-      window.history.replaceState(
-        null,
-        document.title,
-        window.location.pathname,
-      );
-
-      if (!returnedState || returnedState !== expectedState) {
-        if (isMounted) {
-          setAuthError(
-            "Microsoft sign-in could not be verified. Please try again.",
-          );
-        }
+    const loadCurrentUser = async () => {
+      if (!isAuthenticated || inProgress !== InteractionStatus.None) {
         return;
       }
 
@@ -72,23 +49,7 @@ function App() {
       }
 
       try {
-        const response = await microsoftLogin(microsoftAccessToken).catch(
-          (error: unknown) => {
-            if (
-              typeof error === "object" &&
-              error !== null &&
-              "response" in error &&
-              (error as { response?: { status?: number } }).response?.status ===
-                404
-            ) {
-              return microsoftRegister(microsoftAccessToken);
-            }
-
-            throw error;
-          },
-        );
-
-        localStorage.setItem("token", response.accessToken);
+        const response = await getCurrentUser();
         localStorage.setItem(authUserKey, JSON.stringify(response));
         if (isMounted) {
           setAuthUser(response);
@@ -104,47 +65,29 @@ function App() {
       }
     };
 
-    void authenticateMicrosoftRedirect();
+    if (!isAuthenticated && inProgress === InteractionStatus.None) {
+      localStorage.removeItem(authUserKey);
+      setAuthUser(null);
+    }
+
+    void loadCurrentUser();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [inProgress, isAuthenticated]);
 
   const handleMicrosoftLogin = () => {
-    const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID;
-    const tenantId = import.meta.env.VITE_MICROSOFT_TENANT_ID;
-    const redirectUri =
-      import.meta.env.VITE_MICROSOFT_REDIRECT_URI || window.location.origin;
-
-    if (!clientId || !tenantId) {
-      setAuthError(
-        "Microsoft sign-in is not configured. Set VITE_MICROSOFT_CLIENT_ID and VITE_MICROSOFT_TENANT_ID.",
-      );
-      return;
-    }
-
-    const state = crypto.randomUUID();
-    sessionStorage.setItem(oauthStateKey, state);
-
-    const authorizeUrl = new URL(
-      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`,
-    );
-    authorizeUrl.searchParams.set("client_id", clientId);
-    authorizeUrl.searchParams.set("response_type", "token");
-    authorizeUrl.searchParams.set("redirect_uri", redirectUri);
-    authorizeUrl.searchParams.set("response_mode", "fragment");
-    authorizeUrl.searchParams.set("scope", "openid profile email User.Read");
-    authorizeUrl.searchParams.set("state", state);
-    authorizeUrl.searchParams.set("prompt", "select_account");
-
-    window.location.assign(authorizeUrl.toString());
+    void instance.loginRedirect({
+      ...loginRequest,
+      prompt: "select_account",
+    });
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
     localStorage.removeItem(authUserKey);
     setAuthUser(null);
+    void instance.logoutRedirect();
   };
 
   if (!authUser) {
@@ -171,6 +114,21 @@ function getAuthErrorMessage(error: unknown) {
     }
 
     if (response?.status) {
+      if (typeof response.data === "object" && response.data !== null) {
+        const detail =
+          "detail" in response.data && typeof response.data.detail === "string"
+            ? response.data.detail
+            : null;
+        const title =
+          "title" in response.data && typeof response.data.title === "string"
+            ? response.data.title
+            : null;
+
+        if (detail || title) {
+          return detail ?? title ?? `Microsoft sign-in failed with status ${response.status}.`;
+        }
+      }
+
       return `Microsoft sign-in failed with status ${response.status}.`;
     }
   }
@@ -238,7 +196,7 @@ function LandingPage({ authError, authStatus, onLogin }: LandingPageProps) {
 }
 
 interface DashboardProps {
-  authUser: AuthResponse;
+  authUser: CurrentUserResponse;
   onLogout: () => void;
 }
 
