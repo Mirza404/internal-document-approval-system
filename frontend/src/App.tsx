@@ -1,4 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { InteractionStatus } from "@azure/msal-browser";
+import { useIsAuthenticated, useMsal } from "@azure/msal-react";
+import heroImage from "./assets/hero.png";
+import { getCurrentUser, type CurrentUserResponse } from "./api/auth";
+import { loginRequest } from "./auth/msal";
 import Pill from "./components/ui/Pill";
 import { reviewQueue } from "./mockData/reviewQueue";
 import { activityFeed } from "./mockData/activityFeed";
@@ -8,7 +13,198 @@ import { stageStyles } from "./components/styles/StageStyles";
 import { priorityStyles } from "./components/styles/PriorityStyles";
 import { filterOptions } from "./components/utils/FilterOptions";
 
+const authUserKey = "authUser";
+
 function App() {
+  const { instance, inProgress } = useMsal();
+  const isAuthenticated = useIsAuthenticated();
+  const [authUser, setAuthUser] = useState<CurrentUserResponse | null>(() => {
+    const storedUser = localStorage.getItem(authUserKey);
+
+    if (!storedUser) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(storedUser) as CurrentUserResponse;
+    } catch {
+      localStorage.removeItem(authUserKey);
+      return null;
+    }
+  });
+  const [authStatus, setAuthStatus] = useState("idle");
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCurrentUser = async () => {
+      if (!isAuthenticated || inProgress !== InteractionStatus.None) {
+        return;
+      }
+
+      if (isMounted) {
+        setAuthStatus("loading");
+        setAuthError(null);
+      }
+
+      try {
+        const response = await getCurrentUser();
+        localStorage.setItem(authUserKey, JSON.stringify(response));
+        if (isMounted) {
+          setAuthUser(response);
+        }
+      } catch (error: unknown) {
+        if (isMounted) {
+          setAuthError(getAuthErrorMessage(error));
+        }
+      } finally {
+        if (isMounted) {
+          setAuthStatus("idle");
+        }
+      }
+    };
+
+    if (!isAuthenticated && inProgress === InteractionStatus.None) {
+      localStorage.removeItem(authUserKey);
+      setAuthUser(null);
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [inProgress, isAuthenticated]);
+
+  const handleMicrosoftLogin = () => {
+    void instance.loginRedirect({
+      ...loginRequest,
+      prompt: "select_account",
+    });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(authUserKey);
+    setAuthUser(null);
+    void instance.logoutRedirect();
+  };
+
+  if (!authUser) {
+    return (
+      <LandingPage
+        authError={authError}
+        authStatus={authStatus}
+        onLogin={handleMicrosoftLogin}
+      />
+    );
+  }
+
+  return <Dashboard authUser={authUser} onLogout={handleLogout} />;
+}
+
+function getAuthErrorMessage(error: unknown) {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (
+      error as { response?: { data?: unknown; status?: number } }
+    ).response;
+
+    if (typeof response?.data === "string" && response.data.trim()) {
+      return response.data;
+    }
+
+    if (response?.status) {
+      if (typeof response.data === "object" && response.data !== null) {
+        const detail =
+          "detail" in response.data && typeof response.data.detail === "string"
+            ? response.data.detail
+            : null;
+        const title =
+          "title" in response.data && typeof response.data.title === "string"
+            ? response.data.title
+            : null;
+
+        if (detail || title) {
+          return (
+            detail ??
+            title ??
+            `Microsoft sign-in failed with status ${response.status}.`
+          );
+        }
+      }
+
+      return `Microsoft sign-in failed with status ${response.status}.`;
+    }
+  }
+
+  return "Microsoft sign-in failed. Make sure the backend is running and your account is active.";
+}
+
+interface LandingPageProps {
+  authError: string | null;
+  authStatus: string;
+  onLogin: () => void;
+}
+
+function LandingPage({ authError, authStatus, onLogin }: LandingPageProps) {
+  return (
+    <main className="min-h-screen bg-slate-950 text-white">
+      <section className="mx-auto grid min-h-screen max-w-6xl gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8">
+        <div className="py-12">
+          <p className="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-300">
+            InternalDocs
+          </p>
+          <h1 className="mt-6 max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">
+            Secure document approvals for IUS teams.
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
+            Review queues, approval history, and internal workflow actions stay
+            behind Microsoft sign-in.
+          </p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={onLogin}
+              disabled={authStatus === "loading"}
+              className="inline-flex min-h-12 items-center justify-center rounded-lg bg-cyan-400 px-5 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-950/30 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {authStatus === "loading"
+                ? "Signing in..."
+                : "Sign in with Microsoft"}
+            </button>
+          </div>
+
+          {authError ? (
+            <p className="mt-5 max-w-xl rounded-lg border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+              {authError}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="relative min-h-[360px] overflow-hidden rounded-lg border border-white/10 bg-slate-900 shadow-2xl shadow-slate-950/60">
+          <img
+            src={heroImage}
+            alt="Document workflow dashboard preview"
+            className="h-full min-h-[360px] w-full object-cover"
+          />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent p-6">
+            <p className="text-sm font-medium text-slate-200">
+              Approval status, ownership, and recent activity in one workspace.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+interface DashboardProps {
+  authUser: CurrentUserResponse;
+  onLogout: () => void;
+}
+
+function Dashboard({ authUser, onLogout }: DashboardProps) {
   const [filter, setFilter] = useState<(typeof filterOptions)[number]>("All");
 
   const filteredQueue = useMemo(() => {
@@ -38,6 +234,16 @@ function App() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
+              <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
+                {authUser.fullName} · {authUser.role}
+              </div>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+              >
+                Sign out
+              </button>
               <button className="rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-card transition hover:bg-brand-700">
                 New approval flow
               </button>

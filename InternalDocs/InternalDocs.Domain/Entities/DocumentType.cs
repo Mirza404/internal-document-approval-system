@@ -7,7 +7,7 @@ public class DocumentType
     public string Description { get; set; } = string.Empty;
     public bool RequiresApproval { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    
+
     // Navigation properties
     public ICollection<Document> Documents { get; set; } = [];
 }

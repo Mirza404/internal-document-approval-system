@@ -120,8 +120,18 @@ public sealed class ApplicationServiceTests
     private sealed class FakeUserRepository : IUserRepository
     {
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
-        {
-            return Task.FromResult(false);
-        }
+            => Task.FromResult(false);
+
+        public Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken)
+            => Task.FromResult<User?>(null);
+
+        public Task<User?> FindByMicrosoftObjectIdAsync(string microsoftObjectId, CancellationToken cancellationToken)
+            => Task.FromResult<User?>(null);
+
+        public Task<User> CreateAsync(User user, CancellationToken cancellationToken)
+            => Task.FromResult(user);
+
+        public Task UpdateAsync(User user, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }

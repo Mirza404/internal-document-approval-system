@@ -12,11 +12,11 @@ public class Document
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }
-    
+
     // Foreign keys
     public DocumentType DocumentType { get; set; } = null!;
     public User CreatedByUser { get; set; } = null!;
-    
+
     // Navigation properties
     public ICollection<DocumentVersion> Versions { get; set; } = [];
     public ICollection<ApprovalAction> ApprovalActions { get; set; } = [];

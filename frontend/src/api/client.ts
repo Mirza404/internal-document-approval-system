@@ -1,7 +1,7 @@
 import axios from "./axios";
 
-//THIS IS BOILERPLATE CODE, WE FORCE ANY BECAUSE WE WANT TO AVOID 
-// HAVING TO DEFINE TYPES IN ADVANCE. 
+//THIS IS BOILERPLATE CODE, WE FORCE ANY BECAUSE WE WANT TO AVOID
+// HAVING TO DEFINE TYPES IN ADVANCE.
 export const apiClient = {
   //make linter ignore any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,7 +12,7 @@ export const apiClient = {
   post: <T = any>(url: string, data?: any) =>
     axios.post<T>(url, data).then((res) => res.data),
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   put: <T = any>(url: string, data?: any) =>
     axios.put<T>(url, data).then((res) => res.data),
 

@@ -6,11 +6,12 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
-    public string Role { get; set; } = "User"; // Admin, Manager, User
+    public string? MicrosoftObjectId { get; set; }
+    public string Role { get; set; } = "Employee";
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
-    
+
     // Navigation properties
     public ICollection<Document> CreatedDocuments { get; set; } = [];
     public ICollection<ApprovalAction> ApprovalActions { get; set; } = [];

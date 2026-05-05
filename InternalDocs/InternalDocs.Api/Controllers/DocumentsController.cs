@@ -2,11 +2,13 @@ using InternalDocs.Api.Contracts.Documents;
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Common;
 using InternalDocs.Application.Documents;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InternalDocs.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("documents")]
 public sealed class DocumentsController(IDocumentService documentService) : ControllerBase
 {
