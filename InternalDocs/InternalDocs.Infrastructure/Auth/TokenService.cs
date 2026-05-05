@@ -10,11 +10,18 @@ namespace InternalDocs.Infrastructure.Auth;
 
 public sealed class TokenService(IConfiguration configuration) : ITokenService
 {
+    private const string PlaceholderJwtSecret = "YOUR_JWT_SECRET_HERE_MIN_32_CHARS";
+
     public string GenerateJwt(User user)
     {
         var jwtSettings = configuration.GetSection("Jwt");
         var secret = jwtSettings["Secret"]
             ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+        if (secret == PlaceholderJwtSecret)
+        {
+            throw new InvalidOperationException("Jwt:Secret is still set to the placeholder value.");
+        }
+
         var issuer = jwtSettings["Issuer"]
             ?? throw new InvalidOperationException("Jwt:Issuer is not configured.");
         var audience = jwtSettings["Audience"]

@@ -19,6 +19,7 @@
     <ProjectReference Include="../InternalDocs.Application/InternalDocs.Application.csproj" />
     <ProjectReference Include="../InternalDocs.Api/InternalDocs.Api.csproj" />
     <ProjectReference Include="../InternalDocs.Domain/InternalDocs.Domain.csproj" />
+    <ProjectReference Include="../InternalDocs.Infrastructure/InternalDocs.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

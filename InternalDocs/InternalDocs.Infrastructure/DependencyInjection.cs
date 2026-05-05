@@ -14,6 +14,8 @@ namespace InternalDocs.Infrastructure;
 
 public static class DependencyInjection
 {
+    private const string PlaceholderJwtSecret = "YOUR_JWT_SECRET_HERE_MIN_32_CHARS";
+
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -43,6 +45,10 @@ public static class DependencyInjection
         var jwtSettings = configuration.GetSection("Jwt");
         var secret = jwtSettings["Secret"]
             ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+        if (secret == PlaceholderJwtSecret)
+        {
+            throw new InvalidOperationException("Jwt:Secret is still set to the placeholder value.");
+        }
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
