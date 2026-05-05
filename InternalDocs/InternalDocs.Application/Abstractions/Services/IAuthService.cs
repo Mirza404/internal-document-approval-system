@@ -5,6 +5,10 @@ namespace InternalDocs.Application.Abstractions.Services;
 
 public interface IAuthService
 {
+    Task<ServiceResult<AuthDto>> GetOrCreateMicrosoftUserAsync(
+        MicrosoftUserClaims claims,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceResult<AuthDto>> MicrosoftRegisterAsync(
         MicrosoftRegisterCommand command,
         CancellationToken cancellationToken = default);

@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using InternalDocs.Api.Contracts.Auth;
 using InternalDocs.Application.Abstractions.Services;
@@ -17,25 +16,60 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     [HttpGet("me")]
     [ProducesResponseType(typeof(CurrentUserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public ActionResult<CurrentUserResponse> Me()
+    public async Task<ActionResult<CurrentUserResponse>> Me(CancellationToken cancellationToken)
     {
-        var userIdClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
-            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var email = User.FindFirstValue(JwtRegisteredClaimNames.Email)
-            ?? User.FindFirstValue(ClaimTypes.Email);
-        var fullName = User.FindFirstValue(JwtRegisteredClaimNames.Name)
-            ?? User.FindFirstValue(ClaimTypes.Name);
-        var role = User.FindFirstValue(ClaimTypes.Role);
+        var microsoftObjectId = FindFirstClaimValue(
+            "oid",
+            "http://schemas.microsoft.com/identity/claims/objectidentifier",
+            ClaimTypes.NameIdentifier);
+        var email = FindFirstClaimValue(
+            "preferred_username",
+            "upn",
+            "unique_name",
+            "email",
+            ClaimTypes.Upn,
+            ClaimTypes.Email);
+        var fullName = FindFirstClaimValue("name", ClaimTypes.Name) ?? email;
 
-        if (!Guid.TryParse(userIdClaim, out var userId) ||
+        if (string.IsNullOrWhiteSpace(microsoftObjectId) ||
             string.IsNullOrWhiteSpace(email) ||
-            string.IsNullOrWhiteSpace(fullName) ||
-            string.IsNullOrWhiteSpace(role))
+            string.IsNullOrWhiteSpace(fullName))
         {
             return Unauthorized();
         }
 
-        return Ok(new CurrentUserResponse(userId, email, fullName, role));
+        var result = await authService.GetOrCreateMicrosoftUserAsync(
+            new MicrosoftUserClaims(microsoftObjectId, email, fullName),
+            cancellationToken);
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            return result.ErrorType switch
+            {
+                ServiceErrorType.Validation => Unauthorized(result.Error),
+                _ => BadRequest(result.Error)
+            };
+        }
+
+        return Ok(new CurrentUserResponse(
+            result.Value.UserId,
+            result.Value.Email,
+            result.Value.FullName,
+            result.Value.Role));
+    }
+
+    private string? FindFirstClaimValue(params string[] claimTypes)
+    {
+        foreach (var claimType in claimTypes)
+        {
+            var value = User.FindFirstValue(claimType);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+        }
+
+        return null;
     }
 
     [HttpPost("microsoft/register")]

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getApiAccessToken } from "../auth/msal";
 
 const instance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5210",
@@ -8,8 +9,8 @@ const instance = axios.create({
 });
 
 instance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
+  async (config) => {
+    const token = await getApiAccessToken();
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }
@@ -23,11 +24,6 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
-    const isAuthRequest = error.config?.url?.startsWith("/auth/");
-    if (error.response && error.response.status === 401 && !isAuthRequest) {
-      localStorage.removeItem("token");
-      window.location.href = "/login";
-    }
     return Promise.reject(error);
   },
 );
