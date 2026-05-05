@@ -21,6 +21,69 @@ public sealed class AuthService(
     };
 
     // -------------------------------------------------------------------------
+    // Current user
+    // -------------------------------------------------------------------------
+
+    public async Task<ServiceResult<AuthDto>> GetOrCreateMicrosoftUserAsync(
+        MicrosoftUserClaims claims,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsAllowedIusEmail(claims.Email))
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "Registration is restricted to IUS accounts (@ius.edu.ba).",
+                ServiceErrorType.Validation);
+        }
+
+        var user = await userRepository.FindByMicrosoftObjectIdAsync(
+            claims.MicrosoftObjectId,
+            cancellationToken);
+
+        if (user is null)
+        {
+            user = await userRepository.FindByEmailAsync(claims.Email, cancellationToken);
+            if (user is not null)
+            {
+                user.MicrosoftObjectId = claims.MicrosoftObjectId;
+                await userRepository.UpdateAsync(user, cancellationToken);
+            }
+        }
+
+        if (user is null)
+        {
+            user = await userRepository.CreateAsync(
+                new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = claims.Email,
+                    FullName = claims.FullName,
+                    PasswordHash = string.Empty,
+                    MicrosoftObjectId = claims.MicrosoftObjectId,
+                    Role = "Employee",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                },
+                cancellationToken);
+        }
+
+        if (!user.IsActive)
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "This account is inactive.",
+                ServiceErrorType.Validation);
+        }
+
+        if (user.FullName != claims.FullName && !string.IsNullOrWhiteSpace(claims.FullName))
+        {
+            user.FullName = claims.FullName;
+            await userRepository.UpdateAsync(user, cancellationToken);
+        }
+
+        return ServiceResult<AuthDto>.Success(
+            new AuthDto(user.Id, user.Email, user.FullName, user.Role, string.Empty));
+    }
+
+    // -------------------------------------------------------------------------
     // Register
     // -------------------------------------------------------------------------
 
@@ -55,7 +118,7 @@ public sealed class AuthService(
                 ServiceErrorType.Validation);
         }
 
-        if (!email.EndsWith("@ius.edu.ba", StringComparison.OrdinalIgnoreCase) && !email.EndsWith("@student.ius.edu.ba", StringComparison.OrdinalIgnoreCase))
+        if (!IsAllowedIusEmail(email))
         {
             return ServiceResult<AuthDto>.Failure(
                 "Registration is restricted to IUS accounts (@ius.edu.ba).",
@@ -179,6 +242,10 @@ public sealed class AuthService(
             JsonOptions,
             cancellationToken);
     }
+
+    private static bool IsAllowedIusEmail(string email) =>
+        email.EndsWith("@ius.edu.ba", StringComparison.OrdinalIgnoreCase) ||
+        email.EndsWith("@student.ius.edu.ba", StringComparison.OrdinalIgnoreCase);
 
 
     // Minimal projection of the fields we use from /me
