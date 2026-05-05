@@ -125,7 +125,11 @@ function getAuthErrorMessage(error: unknown) {
             : null;
 
         if (detail || title) {
-          return detail ?? title ?? `Microsoft sign-in failed with status ${response.status}.`;
+          return (
+            detail ??
+            title ??
+            `Microsoft sign-in failed with status ${response.status}.`
+          );
         }
       }
 
