@@ -9,6 +9,13 @@ public class Document
     public Guid CreatedByUserId { get; set; }
     public string Status { get; set; } = "Draft"; // Draft, InReview, Approved, Rejected
     public string Priority { get; set; } = "Normal"; // Low, Normal, High, Urgent
+    public string? LeaveType { get; set; }
+    public DateOnly? LeaveStartDate { get; set; }
+    public DateOnly? LeaveEndDate { get; set; }
+    public decimal? Amount { get; set; }
+    public string? BudgetCode { get; set; }
+    public string? Counterparty { get; set; }
+    public string? AttachmentNote { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }

@@ -70,6 +70,11 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Priority).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.LeaveType).HasMaxLength(100);
+            entity.Property(e => e.BudgetCode).HasMaxLength(100);
+            entity.Property(e => e.Counterparty).HasMaxLength(256);
+            entity.Property(e => e.AttachmentNote).HasMaxLength(1000);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
 
             entity.HasOne(e => e.DocumentType)
                 .WithMany(dt => dt.Documents)
