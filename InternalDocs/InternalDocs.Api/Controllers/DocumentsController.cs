@@ -49,7 +49,14 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             request.Description,
             request.DocumentTypeId,
             userId.Value,
-            request.Priority);
+            request.Priority,
+            request.LeaveType,
+            request.LeaveStartDate,
+            request.LeaveEndDate,
+            request.Amount,
+            request.BudgetCode,
+            request.Counterparty,
+            request.AttachmentNote);
 
         var result = await documentService.CreateAsync(command, cancellationToken);
         if (!result.Succeeded || result.Value is null)
@@ -84,7 +91,14 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             request.DocumentTypeId,
             request.Status,
             request.Priority,
-            request.ApprovedAt);
+            request.ApprovedAt,
+            request.LeaveType,
+            request.LeaveStartDate,
+            request.LeaveEndDate,
+            request.Amount,
+            request.BudgetCode,
+            request.Counterparty,
+            request.AttachmentNote);
 
         var result = await documentService.UpdateAsync(id, command, cancellationToken);
         return ToDocumentResponse(result);

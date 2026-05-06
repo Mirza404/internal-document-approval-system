@@ -5,4 +5,11 @@ public sealed record CreateDocumentCommand(
     string? Description,
     Guid? DocumentTypeId,
     Guid CreatedByUserId,
-    string? Priority);
+    string? Priority,
+    string? LeaveType,
+    DateOnly? LeaveStartDate,
+    DateOnly? LeaveEndDate,
+    decimal? Amount,
+    string? BudgetCode,
+    string? Counterparty,
+    string? AttachmentNote);

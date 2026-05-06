@@ -1,4 +1,5 @@
 import axios from "axios";
+import { loadAuthToken } from "../auth/authStorage";
 import { getApiAccessToken } from "../auth/msal";
 
 const instance = axios.create({
@@ -10,7 +11,8 @@ const instance = axios.create({
 
 instance.interceptors.request.use(
   async (config) => {
-    const token = await getApiAccessToken();
+    const appToken = loadAuthToken();
+    const token = appToken ?? (await getApiAccessToken());
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
     }

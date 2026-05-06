@@ -57,7 +57,8 @@ public sealed class DocumentService(
             return Validation("DocumentTypeId is required.");
         }
 
-        if (!await documentTypes.ExistsAsync(command.DocumentTypeId.Value, cancellationToken))
+        var documentType = await documentTypes.GetByIdWithCategoryAsync(command.DocumentTypeId.Value, cancellationToken);
+        if (documentType is null)
         {
             return Validation("DocumentTypeId does not exist.");
         }
@@ -86,10 +87,23 @@ public sealed class DocumentService(
             CreatedByUserId = command.CreatedByUserId,
             Status = "Draft",
             Priority = priority,
+            LeaveType = NormalizeOptional(command.LeaveType),
+            LeaveStartDate = command.LeaveStartDate,
+            LeaveEndDate = command.LeaveEndDate,
+            Amount = command.Amount,
+            BudgetCode = NormalizeOptional(command.BudgetCode),
+            Counterparty = NormalizeOptional(command.Counterparty),
+            AttachmentNote = NormalizeOptional(command.AttachmentNote),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = null,
             ApprovedAt = null
         };
+
+        var metadataValidation = ValidateDocumentMetadata(document, documentType);
+        if (metadataValidation is not null)
+        {
+            return Validation(metadataValidation);
+        }
 
         documents.Add(document);
         await documents.SaveChangesAsync(cancellationToken);
@@ -113,14 +127,24 @@ public sealed class DocumentService(
             return Validation("You can only update your own documents.");
         }
 
+        DocumentType? documentType = null;
         if (command.DocumentTypeId.HasValue)
         {
-            if (!await documentTypes.ExistsAsync(command.DocumentTypeId.Value, cancellationToken))
+            documentType = await documentTypes.GetByIdWithCategoryAsync(command.DocumentTypeId.Value, cancellationToken);
+            if (documentType is null)
             {
                 return Validation("DocumentTypeId does not exist.");
             }
 
             document.DocumentTypeId = command.DocumentTypeId.Value;
+        }
+        else
+        {
+            documentType = await documentTypes.GetByIdWithCategoryAsync(document.DocumentTypeId, cancellationToken);
+            if (documentType is null)
+            {
+                return Validation("DocumentTypeId does not exist.");
+            }
         }
 
 
@@ -162,6 +186,14 @@ public sealed class DocumentService(
         if (command.ApprovedAt.HasValue)
         {
             document.ApprovedAt = command.ApprovedAt.Value;
+        }
+
+        ApplyMetadataUpdates(document, command);
+
+        var metadataValidation = ValidateDocumentMetadata(document, documentType);
+        if (metadataValidation is not null)
+        {
+            return Validation(metadataValidation);
         }
 
         document.UpdatedAt = DateTime.UtcNow;
@@ -207,5 +239,106 @@ public sealed class DocumentService(
         }
 
         return AllowedPriorities.TryGetValue(rawPriority.Trim(), out priority!);
+    }
+
+    private static void ApplyMetadataUpdates(Document document, UpdateDocumentCommand command)
+    {
+        if (command.LeaveType is not null)
+        {
+            document.LeaveType = NormalizeOptional(command.LeaveType);
+        }
+
+        if (command.LeaveStartDate.HasValue)
+        {
+            document.LeaveStartDate = command.LeaveStartDate.Value;
+        }
+
+        if (command.LeaveEndDate.HasValue)
+        {
+            document.LeaveEndDate = command.LeaveEndDate.Value;
+        }
+
+        if (command.Amount.HasValue)
+        {
+            document.Amount = command.Amount.Value;
+        }
+
+        if (command.BudgetCode is not null)
+        {
+            document.BudgetCode = NormalizeOptional(command.BudgetCode);
+        }
+
+        if (command.Counterparty is not null)
+        {
+            document.Counterparty = NormalizeOptional(command.Counterparty);
+        }
+
+        if (command.AttachmentNote is not null)
+        {
+            document.AttachmentNote = NormalizeOptional(command.AttachmentNote);
+        }
+    }
+
+    private static string? ValidateDocumentMetadata(Document document, DocumentType documentType)
+    {
+        return documentType.Category.Name.Trim().ToUpperInvariant() switch
+        {
+            "HR" => ValidateHrDocument(document),
+            "FINANCE" => ValidateFinanceDocument(document),
+            "CONTRACT" => ValidateContractDocument(document),
+            "GENERIC" => null,
+            _ => $"Document type category '{documentType.Category.Name}' is not supported."
+        };
+    }
+
+    private static string? ValidateHrDocument(Document document)
+    {
+        if (string.IsNullOrWhiteSpace(document.LeaveType))
+        {
+            return "HR documents require LeaveType.";
+        }
+
+        if (!document.LeaveStartDate.HasValue || !document.LeaveEndDate.HasValue)
+        {
+            return "HR documents require LeaveStartDate and LeaveEndDate.";
+        }
+
+        if (document.LeaveEndDate.Value < document.LeaveStartDate.Value)
+        {
+            return "HR document LeaveEndDate cannot be before LeaveStartDate.";
+        }
+
+        return null;
+    }
+
+    private static string? ValidateFinanceDocument(Document document)
+    {
+        if (!document.Amount.HasValue || document.Amount.Value <= 0)
+        {
+            return "Finance documents require Amount greater than 0.";
+        }
+
+        if (string.IsNullOrWhiteSpace(document.BudgetCode))
+        {
+            return "Finance documents require BudgetCode.";
+        }
+
+        return null;
+    }
+
+    private static string? ValidateContractDocument(Document document)
+    {
+        if (string.IsNullOrWhiteSpace(document.Counterparty)
+            && string.IsNullOrWhiteSpace(document.AttachmentNote))
+        {
+            return "Contract documents require Counterparty or AttachmentNote.";
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }
