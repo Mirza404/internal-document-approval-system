@@ -21,6 +21,21 @@ public sealed class DocumentCatalogService(IDocumentTypeRepository documentTypes
         return result.Select(DocumentTypeDto.FromEntity).ToList();
     }
 
+    public async Task<ServiceResult<DocumentTypeDto>> GetDocumentTypeByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var documentType = await documentTypes.GetByIdWithCategoryAsync(id, cancellationToken);
+        if (documentType is null)
+        {
+            return ServiceResult<DocumentTypeDto>.Failure(
+                "Document type was not found.",
+                ServiceErrorType.NotFound);
+        }
+
+        return ServiceResult<DocumentTypeDto>.Success(DocumentTypeDto.FromEntity(documentType));
+    }
+
     public async Task<ServiceResult<DocumentCategoryDto>> CreateCategoryAsync(
         CreateDocumentCategoryCommand command,
         CancellationToken cancellationToken)

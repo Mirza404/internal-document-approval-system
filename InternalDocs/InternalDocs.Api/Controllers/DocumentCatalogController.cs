@@ -29,6 +29,17 @@ public sealed class DocumentCatalogController(IDocumentCatalogService documentCa
         return Ok(documentTypes.Select(DocumentTypeResponse.FromDto).ToList());
     }
 
+    [HttpGet("document-types/{id:guid}")]
+    [ProducesResponseType(typeof(DocumentTypeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DocumentTypeResponse>> GetDocumentTypeById(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await documentCatalogService.GetDocumentTypeByIdAsync(id, cancellationToken);
+        return ToDocumentTypeResponse(result);
+    }
+
     [HttpPost("document-categories")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(DocumentCategoryResponse), StatusCodes.Status201Created)]

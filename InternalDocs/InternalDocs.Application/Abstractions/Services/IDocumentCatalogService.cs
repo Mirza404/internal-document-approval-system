@@ -9,6 +9,10 @@ public interface IDocumentCatalogService
 
     Task<IReadOnlyList<DocumentTypeDto>> GetDocumentTypesAsync(CancellationToken cancellationToken);
 
+    Task<ServiceResult<DocumentTypeDto>> GetDocumentTypeByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken);
+
     Task<ServiceResult<DocumentCategoryDto>> CreateCategoryAsync(
         CreateDocumentCategoryCommand command,
         CancellationToken cancellationToken);
