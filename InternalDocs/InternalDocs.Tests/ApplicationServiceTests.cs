@@ -111,6 +111,16 @@ public sealed class ApplicationServiceTests
 
     private sealed class FakeDocumentTypeRepository : IDocumentTypeRepository
     {
+        public Task<IReadOnlyList<DocumentCategory>> GetCategoriesAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<DocumentCategory>>([]);
+        }
+
+        public Task<IReadOnlyList<DocumentType>> GetAllAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<DocumentType>>([]);
+        }
+
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         {
             return Task.FromResult(false);

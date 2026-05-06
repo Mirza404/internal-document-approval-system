@@ -1,5 +1,6 @@
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Approvals;
+using InternalDocs.Application.DocumentCatalog;
 using InternalDocs.Application.Documents;
 using InternalDocs.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,6 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IDocumentCatalogService, DocumentCatalogService>();
 builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services
