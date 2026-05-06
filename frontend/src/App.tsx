@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { useAuth } from "./auth/AuthContext";
+import { useAuth } from "./hooks/useAuth";
 import type { AuthUser } from "./auth/authStorage";
 import AuthPage from "./pages/AuthPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";

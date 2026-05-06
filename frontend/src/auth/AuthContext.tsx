@@ -1,28 +1,11 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   clearAuthSession,
   loadAuthToken,
   loadAuthUser,
   saveAuthSession,
-  type AuthUser,
 } from "./authStorage";
-
-interface AuthContextValue {
-  token: string | null;
-  user: AuthUser | null;
-  isAuthenticated: boolean;
-  setSession: (token: string, user: AuthUser) => void;
-  clearSession: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { AuthContext } from "./authContext";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(() => loadAuthToken());
@@ -52,13 +35,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
-
-  return context;
 };

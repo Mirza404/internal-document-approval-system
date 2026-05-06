@@ -4,7 +4,7 @@ import { useIsAuthenticated, useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import { microsoftLogin, microsoftRegister } from "../api/auth";
 import { getGraphAccessToken, graphLoginRequest } from "../auth/msal";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 const authModeKey = "authMode";
 
