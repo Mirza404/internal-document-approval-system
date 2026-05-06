@@ -1,3 +1,4 @@
+using System.Text.Json;
 using InternalDocs.Application.Abstractions.Repositories;
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Common;
@@ -47,6 +48,27 @@ public sealed class DocumentService(
         CreateDocumentCommand command,
         CancellationToken cancellationToken)
     {
+        return await SubmitAsync(
+            new SubmitDocumentCommand(
+                command.Title,
+                command.Description,
+                command.DocumentTypeId,
+                command.CreatedByUserId,
+                command.Priority,
+                command.LeaveType,
+                command.LeaveStartDate,
+                command.LeaveEndDate,
+                command.Amount,
+                command.BudgetCode,
+                command.Counterparty,
+                command.AttachmentNote),
+            cancellationToken);
+    }
+
+    public async Task<ServiceResult<DocumentDto>> SubmitAsync(
+        SubmitDocumentCommand command,
+        CancellationToken cancellationToken)
+    {
         if (string.IsNullOrWhiteSpace(command.Title))
         {
             return Validation("Title is required.");
@@ -85,7 +107,7 @@ public sealed class DocumentService(
             Description = command.Description?.Trim() ?? string.Empty,
             DocumentTypeId = command.DocumentTypeId.Value,
             CreatedByUserId = command.CreatedByUserId,
-            Status = "Draft",
+            Status = "PendingApproval",
             Priority = priority,
             LeaveType = NormalizeOptional(command.LeaveType),
             LeaveStartDate = command.LeaveStartDate,
@@ -104,6 +126,16 @@ public sealed class DocumentService(
         {
             return Validation(metadataValidation);
         }
+
+        document.Versions.Add(new DocumentVersion
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = document.Id,
+            VersionNumber = 1,
+            Content = CreateVersionSnapshot(document),
+            ChangeNotes = "Initial submission",
+            CreatedAt = document.CreatedAt
+        });
 
         documents.Add(document);
         await documents.SaveChangesAsync(cancellationToken);
@@ -340,5 +372,26 @@ public sealed class DocumentService(
     private static string? NormalizeOptional(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static string CreateVersionSnapshot(Document document)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            document.Title,
+            document.Description,
+            document.DocumentTypeId,
+            document.CreatedByUserId,
+            document.Status,
+            document.Priority,
+            document.LeaveType,
+            document.LeaveStartDate,
+            document.LeaveEndDate,
+            document.Amount,
+            document.BudgetCode,
+            document.Counterparty,
+            document.AttachmentNote,
+            document.CreatedAt
+        });
     }
 }

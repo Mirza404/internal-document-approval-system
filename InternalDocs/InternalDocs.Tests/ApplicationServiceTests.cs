@@ -16,15 +16,15 @@ public sealed class ApplicationServiceTests
     private static readonly Guid GenericDocumentTypeId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
     [Fact]
-    public async Task CreateDocumentAsync_RequiresExplicitDocumentTypeAndCreator()
+    public async Task SubmitDocumentAsync_RequiresExplicitDocumentTypeAndCreator()
     {
         var service = new DocumentService(
             new FakeDocumentRepository(),
             new FakeDocumentTypeRepository(),
             new FakeUserRepository());
 
-        var result = await service.CreateAsync(
-            CreateCommand("Request", createdByUserId: UserId),
+        var result = await service.SubmitAsync(
+            SubmitCommand("Request", createdByUserId: UserId),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -33,15 +33,15 @@ public sealed class ApplicationServiceTests
     }
 
     [Fact]
-    public async Task CreateDocumentAsync_HrDocumentsRequireLeaveMetadata()
+    public async Task SubmitDocumentAsync_HrDocumentsRequireLeaveMetadata()
     {
         var service = new DocumentService(
             new FakeDocumentRepository(),
             new FakeDocumentTypeRepository(CreateDocumentType(HrDocumentTypeId, "HR")),
             new FakeUserRepository(userExists: true));
 
-        var result = await service.CreateAsync(
-            CreateCommand("Leave request", documentTypeId: HrDocumentTypeId, createdByUserId: UserId),
+        var result = await service.SubmitAsync(
+            SubmitCommand("Leave request", documentTypeId: HrDocumentTypeId, createdByUserId: UserId),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -50,15 +50,15 @@ public sealed class ApplicationServiceTests
     }
 
     [Fact]
-    public async Task CreateDocumentAsync_FinanceDocumentsRequireAmountAndBudgetCode()
+    public async Task SubmitDocumentAsync_FinanceDocumentsRequireAmountAndBudgetCode()
     {
         var service = new DocumentService(
             new FakeDocumentRepository(),
             new FakeDocumentTypeRepository(CreateDocumentType(FinanceDocumentTypeId, "Finance")),
             new FakeUserRepository(userExists: true));
 
-        var result = await service.CreateAsync(
-            CreateCommand("Budget request", documentTypeId: FinanceDocumentTypeId, createdByUserId: UserId),
+        var result = await service.SubmitAsync(
+            SubmitCommand("Budget request", documentTypeId: FinanceDocumentTypeId, createdByUserId: UserId),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -67,15 +67,15 @@ public sealed class ApplicationServiceTests
     }
 
     [Fact]
-    public async Task CreateDocumentAsync_ContractDocumentsRequireCounterpartyOrAttachmentNote()
+    public async Task SubmitDocumentAsync_ContractDocumentsRequireCounterpartyOrAttachmentNote()
     {
         var service = new DocumentService(
             new FakeDocumentRepository(),
             new FakeDocumentTypeRepository(CreateDocumentType(ContractDocumentTypeId, "Contract")),
             new FakeUserRepository(userExists: true));
 
-        var result = await service.CreateAsync(
-            CreateCommand("Service agreement", documentTypeId: ContractDocumentTypeId, createdByUserId: UserId),
+        var result = await service.SubmitAsync(
+            SubmitCommand("Service agreement", documentTypeId: ContractDocumentTypeId, createdByUserId: UserId),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -84,7 +84,7 @@ public sealed class ApplicationServiceTests
     }
 
     [Fact]
-    public async Task CreateDocumentAsync_GenericDocumentsDoNotRequireMetadata()
+    public async Task SubmitDocumentAsync_GenericDocumentsDoNotRequireMetadata()
     {
         var documentRepository = new FakeDocumentRepository();
         var service = new DocumentService(
@@ -92,13 +92,18 @@ public sealed class ApplicationServiceTests
             new FakeDocumentTypeRepository(CreateDocumentType(GenericDocumentTypeId, "Generic")),
             new FakeUserRepository(userExists: true));
 
-        var result = await service.CreateAsync(
-            CreateCommand("General note", "Description", GenericDocumentTypeId, UserId),
+        var result = await service.SubmitAsync(
+            SubmitCommand("General note", "Description", GenericDocumentTypeId, UserId),
             CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.NotNull(documentRepository.Document);
         Assert.Equal("General note", documentRepository.Document.Title);
+        Assert.Equal("PendingApproval", documentRepository.Document.Status);
+        var version = Assert.Single(documentRepository.Document.Versions);
+        Assert.Equal(1, version.VersionNumber);
+        Assert.Contains("\"Title\":\"General note\"", version.Content);
+        Assert.Equal("Initial submission", version.ChangeNotes);
     }
 
     [Fact]
@@ -333,7 +338,7 @@ public sealed class ApplicationServiceTests
         };
     }
 
-    private static CreateDocumentCommand CreateCommand(
+    private static SubmitDocumentCommand SubmitCommand(
         string title,
         string? description = null,
         Guid? documentTypeId = null,
@@ -347,7 +352,7 @@ public sealed class ApplicationServiceTests
         string? counterparty = null,
         string? attachmentNote = null)
     {
-        return new CreateDocumentCommand(
+        return new SubmitDocumentCommand(
             title,
             description,
             documentTypeId,

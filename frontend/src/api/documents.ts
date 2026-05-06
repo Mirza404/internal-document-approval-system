@@ -24,7 +24,6 @@ export interface CreateDocumentRequest {
   title: string;
   description?: string | null;
   documentTypeId?: string | null;
-  createdByUserId?: string | null;
   priority?: string | null;
   leaveType?: string | null;
   leaveStartDate?: string | null;
@@ -39,7 +38,6 @@ export interface UpdateDocumentRequest {
   title?: string | null;
   description?: string | null;
   documentTypeId?: string | null;
-  createdByUserId?: string | null;
   status?: string | null;
   priority?: string | null;
   approvedAt?: string | null;
