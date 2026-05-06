@@ -1,17 +1,12 @@
 namespace InternalDocs.Domain.Entities;
 
-public class DocumentType
+public class DocumentCategory
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public Guid CategoryId { get; set; }
-    public bool RequiresApproval { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Foreign keys
-    public DocumentCategory Category { get; set; } = null!;
-
     // Navigation properties
-    public ICollection<Document> Documents { get; set; } = [];
+    public ICollection<DocumentType> DocumentTypes { get; set; } = [];
 }
