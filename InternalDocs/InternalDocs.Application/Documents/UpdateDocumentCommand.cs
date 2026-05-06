@@ -7,4 +7,11 @@ public sealed record UpdateDocumentCommand(
     Guid? CreatedByUserId,
     string? Status,
     string? Priority,
-    DateTime? ApprovedAt);
+    DateTime? ApprovedAt,
+    string? LeaveType,
+    DateOnly? LeaveStartDate,
+    DateOnly? LeaveEndDate,
+    decimal? Amount,
+    string? BudgetCode,
+    string? Counterparty,
+    string? AttachmentNote);
