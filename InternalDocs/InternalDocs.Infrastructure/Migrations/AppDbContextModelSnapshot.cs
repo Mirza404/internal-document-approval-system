@@ -95,6 +95,33 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("DocumentCategories");
+                });
+
             modelBuilder.Entity("InternalDocs.Domain.Entities.Document", b =>
                 {
                     b.Property<Guid>("Id")
@@ -153,6 +180,9 @@ namespace InternalDocs.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -170,6 +200,8 @@ namespace InternalDocs.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
 
                     b.ToTable("DocumentTypes");
                 });
@@ -345,6 +377,17 @@ namespace InternalDocs.Infrastructure.Migrations
                     b.Navigation("DocumentType");
                 });
 
+            modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentType", b =>
+                {
+                    b.HasOne("InternalDocs.Domain.Entities.DocumentCategory", "Category")
+                        .WithMany("DocumentTypes")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentVersion", b =>
                 {
                     b.HasOne("InternalDocs.Domain.Entities.Document", "Document")
@@ -377,6 +420,11 @@ namespace InternalDocs.Infrastructure.Migrations
             modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentType", b =>
                 {
                     b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("InternalDocs.Domain.Entities.DocumentCategory", b =>
+                {
+                    b.Navigation("DocumentTypes");
                 });
 
             modelBuilder.Entity("InternalDocs.Domain.Entities.User", b =>
