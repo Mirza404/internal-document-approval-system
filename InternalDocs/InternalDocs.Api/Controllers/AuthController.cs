@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using InternalDocs.Api.Contracts.Auth;
 using InternalDocs.Application.Abstractions.Services;
@@ -18,19 +19,30 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<CurrentUserResponse>> Me(CancellationToken cancellationToken)
     {
-        var microsoftObjectId = FindFirstClaimValue(
-            "oid",
-            "http://schemas.microsoft.com/identity/claims/objectidentifier",
-            ClaimTypes.NameIdentifier);
+        var userIdValue = FindFirstClaimValue(ClaimTypes.NameIdentifier, JwtRegisteredClaimNames.Sub);
         var email = FindFirstClaimValue(
+            JwtRegisteredClaimNames.Email,
+            ClaimTypes.Email,
             "preferred_username",
             "upn",
             "unique_name",
             "email",
-            ClaimTypes.Upn,
-            ClaimTypes.Email);
-        var fullName = FindFirstClaimValue("name", ClaimTypes.Name) ?? email;
+            ClaimTypes.Upn);
+        var fullName = FindFirstClaimValue(JwtRegisteredClaimNames.Name, ClaimTypes.Name) ?? email;
+        var role = FindFirstClaimValue(ClaimTypes.Role, "roles");
 
+        if (Guid.TryParse(userIdValue, out var userId) &&
+            !string.IsNullOrWhiteSpace(email) &&
+            !string.IsNullOrWhiteSpace(fullName) &&
+            !string.IsNullOrWhiteSpace(role))
+        {
+            return Ok(new CurrentUserResponse(userId, email, fullName, role));
+        }
+
+        var microsoftObjectId = FindFirstClaimValue(
+            "oid",
+            "http://schemas.microsoft.com/identity/claims/objectidentifier",
+            ClaimTypes.NameIdentifier);
         if (string.IsNullOrWhiteSpace(microsoftObjectId) ||
             string.IsNullOrWhiteSpace(email) ||
             string.IsNullOrWhiteSpace(fullName))

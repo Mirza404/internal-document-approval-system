@@ -63,12 +63,12 @@ public sealed class DocumentService(
             return Validation("DocumentTypeId does not exist.");
         }
 
-        if (command.CreatedByUserId is null)
+        if (command.CreatedByUserId == Guid.Empty)
         {
             return Validation("CreatedByUserId is required.");
         }
 
-        if (!await users.ExistsAsync(command.CreatedByUserId.Value, cancellationToken))
+        if (!await users.ExistsAsync(command.CreatedByUserId, cancellationToken))
         {
             return Validation("CreatedByUserId does not exist.");
         }
@@ -84,7 +84,7 @@ public sealed class DocumentService(
             Title = command.Title.Trim(),
             Description = command.Description?.Trim() ?? string.Empty,
             DocumentTypeId = command.DocumentTypeId.Value,
-            CreatedByUserId = command.CreatedByUserId.Value,
+            CreatedByUserId = command.CreatedByUserId,
             Status = "Draft",
             Priority = priority,
             LeaveType = NormalizeOptional(command.LeaveType),
@@ -122,6 +122,11 @@ public sealed class DocumentService(
             return ServiceResult<DocumentDto>.Failure("Document was not found.", ServiceErrorType.NotFound);
         }
 
+        if (document.CreatedByUserId != command.UserId)
+        {
+            return Validation("You can only update your own documents.");
+        }
+
         DocumentType? documentType = null;
         if (command.DocumentTypeId.HasValue)
         {
@@ -142,15 +147,6 @@ public sealed class DocumentService(
             }
         }
 
-        if (command.CreatedByUserId.HasValue)
-        {
-            if (!await users.ExistsAsync(command.CreatedByUserId.Value, cancellationToken))
-            {
-                return Validation("CreatedByUserId does not exist.");
-            }
-
-            document.CreatedByUserId = command.CreatedByUserId.Value;
-        }
 
         if (command.Title is not null)
         {
@@ -206,12 +202,17 @@ public sealed class DocumentService(
         return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
     }
 
-    public async Task<ServiceResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<ServiceResult> DeleteAsync(Guid id, Guid userId, CancellationToken cancellationToken)
     {
         var document = await documents.GetByIdAsync(id, cancellationToken);
         if (document is null)
         {
             return ServiceResult.Failure("Document was not found.", ServiceErrorType.NotFound);
+        }
+
+        if (document.CreatedByUserId != userId)
+        {
+            return ServiceResult.Failure("You can only delete your own documents.", ServiceErrorType.Validation);
         }
 
         documents.Remove(document);

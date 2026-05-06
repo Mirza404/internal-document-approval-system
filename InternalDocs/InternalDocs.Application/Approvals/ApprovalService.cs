@@ -87,6 +87,11 @@ public sealed class ApprovalService(
             return ServiceResult<ApprovalDto>.Failure("Approval action was not found.", ServiceErrorType.NotFound);
         }
 
+        if (approval.ApprovedByUserId != command.ApproverId)
+        {
+            return Validation("You can only update your own approval actions.");
+        }
+
         if (command.Status is not null)
         {
             if (!TryNormalizeStatus(command.Status, out var status))

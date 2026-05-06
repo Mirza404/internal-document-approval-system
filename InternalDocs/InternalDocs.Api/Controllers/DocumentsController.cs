@@ -1,3 +1,4 @@
+using InternalDocs.Api.Authentication;
 using InternalDocs.Api.Contracts.Documents;
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Common;
@@ -30,17 +31,24 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
     }
 
     [HttpPost]
+    [Authorize(Roles = "Employee")]
     [ProducesResponseType(typeof(DocumentResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DocumentResponse>> Create(
         [FromBody] CreateDocumentRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
         var command = new CreateDocumentCommand(
             request.Title,
             request.Description,
             request.DocumentTypeId,
-            request.CreatedByUserId,
+            userId.Value,
             request.Priority,
             request.LeaveType,
             request.LeaveStartDate,
@@ -61,6 +69,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Employee")]
     [ProducesResponseType(typeof(DocumentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -69,11 +78,17 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
         [FromBody] UpdateDocumentRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
         var command = new UpdateDocumentCommand(
+            userId.Value,
             request.Title,
             request.Description,
             request.DocumentTypeId,
-            request.CreatedByUserId,
             request.Status,
             request.Priority,
             request.ApprovedAt,
@@ -90,11 +105,18 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Employee")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var result = await documentService.DeleteAsync(id, cancellationToken);
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await documentService.DeleteAsync(id, userId.Value, cancellationToken);
         if (result.Succeeded)
         {
             return NoContent();

@@ -24,7 +24,7 @@ public sealed class ApplicationServiceTests
             new FakeUserRepository());
 
         var result = await service.CreateAsync(
-            CreateCommand("Request"),
+            CreateCommand("Request", createdByUserId: UserId),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -156,7 +156,7 @@ public sealed class ApplicationServiceTests
 
         var result = await service.UpdateAsync(
             approvalId,
-            new UpdateApprovalCommand("typo", null),
+            new UpdateApprovalCommand(approvalRepository.Approval.ApprovedByUserId, "typo", null),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -246,6 +246,47 @@ public sealed class ApplicationServiceTests
         {
             return Task.FromResult(documentTypes.Any(x => x.Id == id));
         }
+
+        public Task<DocumentCategory?> GetCategoryByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<DocumentCategory?>(null);
+        }
+
+        public Task<DocumentType?> GetDocumentTypeByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<DocumentType?>(null);
+        }
+
+        public Task<bool> CategoryHasDocumentTypesAsync(Guid categoryId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task<bool> DocumentTypeHasDocumentsAsync(Guid documentTypeId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
+        }
+
+        public void AddCategory(DocumentCategory category)
+        {
+        }
+
+        public void AddDocumentType(DocumentType documentType)
+        {
+        }
+
+        public void RemoveCategory(DocumentCategory category)
+        {
+        }
+
+        public void RemoveDocumentType(DocumentType documentType)
+        {
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeUserRepository : IUserRepository
@@ -310,7 +351,7 @@ public sealed class ApplicationServiceTests
             title,
             description,
             documentTypeId,
-            createdByUserId,
+            createdByUserId ?? Guid.Empty,
             priority,
             leaveType,
             leaveStartDate,
@@ -322,10 +363,10 @@ public sealed class ApplicationServiceTests
     }
 
     private static UpdateDocumentCommand UpdateCommand(
+        Guid? userId = null,
         string? title = null,
         string? description = null,
         Guid? documentTypeId = null,
-        Guid? createdByUserId = null,
         string? status = null,
         string? priority = null,
         DateTime? approvedAt = null,
@@ -338,10 +379,10 @@ public sealed class ApplicationServiceTests
         string? attachmentNote = null)
     {
         return new UpdateDocumentCommand(
+            userId ?? UserId,
             title,
             description,
             documentTypeId,
-            createdByUserId,
             status,
             priority,
             approvedAt,

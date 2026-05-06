@@ -11,7 +11,8 @@ export interface Approval {
 
 export interface CreateApprovalRequest {
   documentId: string;
-  approverId: string;
+  status?: "pending" | "approved" | "rejected";
+  comments?: string;
 }
 
 // API functions
