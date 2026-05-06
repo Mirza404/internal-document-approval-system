@@ -9,4 +9,11 @@ public sealed class UpdateDocumentRequest
     public string? Status { get; set; }
     public string? Priority { get; set; }
     public DateTime? ApprovedAt { get; set; }
+    public string? LeaveType { get; set; }
+    public DateOnly? LeaveStartDate { get; set; }
+    public DateOnly? LeaveEndDate { get; set; }
+    public decimal? Amount { get; set; }
+    public string? BudgetCode { get; set; }
+    public string? Counterparty { get; set; }
+    public string? AttachmentNote { get; set; }
 }
