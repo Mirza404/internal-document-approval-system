@@ -2,18 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { useIsAuthenticated, useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
-import { microsoftLogin, microsoftRegister } from "../api/auth";
+import { microsoftLogin } from "../api/auth";
 import { getGraphAccessToken, graphLoginRequest } from "../auth/msal";
 import { useAuth } from "../hooks/useAuth";
 
-const authModeKey = "authMode";
-
-type AuthMode = "login" | "register";
-
 type AuthStatus = "idle" | "loading";
-
-const resolveAuthMode = (): AuthMode =>
-  sessionStorage.getItem(authModeKey) === "register" ? "register" : "login";
 
 const roleRedirect = (role?: string) => {
   switch ((role ?? "").toLowerCase()) {
@@ -66,31 +59,18 @@ const AuthPage = () => {
   const isMicrosoftAuthenticated = useIsAuthenticated();
   const { isAuthenticated, user, setSession } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<AuthMode>(() => resolveAuthMode());
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const isProcessingRef = useRef(false);
 
   const copy = useMemo(
-    () =>
-      mode === "register"
-        ? {
-            title: "Create your InternalDocs workspace.",
-            subtitle:
-              "Register with your Microsoft account to receive access and start approving documents.",
-            action: "Create account",
-            toggleLabel: "Already have an account?",
-            toggleAction: "Sign in instead",
-          }
-        : {
-            title: "Welcome back to InternalDocs.",
-            subtitle:
-              "Use your Microsoft account to continue managing approvals and review queues.",
-            action: "Sign in",
-            toggleLabel: "New to InternalDocs?",
-            toggleAction: "Create an account",
-          },
-    [mode],
+    () => ({
+      title: "Welcome back to InternalDocs.",
+      subtitle:
+        "Use your Microsoft account to continue managing approvals and review queues.",
+      action: "Sign in",
+    }),
+    [],
   );
 
   useEffect(() => {
@@ -100,10 +80,6 @@ const AuthPage = () => {
   }, [isAuthenticated, navigate, user]);
 
   useEffect(() => {
-    if (!sessionStorage.getItem(authModeKey)) {
-      return;
-    }
-
     if (!isMicrosoftAuthenticated || inProgress !== InteractionStatus.None) {
       return;
     }
@@ -123,11 +99,7 @@ const AuthPage = () => {
           throw new Error("Microsoft access token not available.");
         }
 
-        const requestedMode = resolveAuthMode();
-        const response =
-          requestedMode === "register"
-            ? await microsoftRegister(microsoftToken)
-            : await microsoftLogin(microsoftToken);
+        const response = await microsoftLogin(microsoftToken);
 
         setSession(response.accessToken, {
           userId: response.userId,
@@ -136,7 +108,6 @@ const AuthPage = () => {
           role: response.role,
         });
 
-        sessionStorage.removeItem(authModeKey);
         navigate(roleRedirect(response.role), { replace: true });
       } catch (authError: unknown) {
         setError(getAuthErrorMessage(authError));
@@ -149,16 +120,7 @@ const AuthPage = () => {
     void finalizeLogin();
   }, [inProgress, isMicrosoftAuthenticated, navigate, setSession]);
 
-  const handleModeToggle = () => {
-    const nextMode = mode === "login" ? "register" : "login";
-    setMode(nextMode);
-    sessionStorage.setItem(authModeKey, nextMode);
-    setError(null);
-    isProcessingRef.current = false;
-  };
-
   const handleMicrosoftAuth = () => {
-    sessionStorage.setItem(authModeKey, mode);
     setStatus("loading");
     setError(null);
     void instance.loginRedirect({
@@ -182,9 +144,7 @@ const AuthPage = () => {
           </p>
           <div className="rounded-2xl border border-border/60 bg-card/70 p-5 shadow-2xs">
             <p className="text-sm font-medium text-foreground">
-              {mode === "register"
-                ? "Registration is available for IUS accounts only."
-                : "Access is restricted to active IUS accounts."}
+              Access is restricted to active IUS accounts.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               We will use your Microsoft profile to verify your identity and
@@ -197,19 +157,12 @@ const AuthPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-                {mode === "register" ? "Register" : "Login"}
+                Login
               </p>
               <h2 className="mt-2 text-2xl font-semibold text-foreground">
-                {mode === "register" ? "Create your account" : "Sign in"}
+                Sign in
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={handleModeToggle}
-              className="rounded-full border border-border/60 px-4 py-2 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
-            >
-              {copy.toggleAction}
-            </button>
           </div>
 
           <div className="mt-8 space-y-4">
@@ -217,22 +170,20 @@ const AuthPage = () => {
               type="button"
               onClick={handleMicrosoftAuth}
               disabled={status === "loading"}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {status === "loading"
-                ? "Connecting..."
-                : copy.action + " with Microsoft"}
+              {status === "loading" ? (
+                <>
+                  <span
+                    aria-hidden="true"
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground"
+                  />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in with Microsoft"
+              )}
             </button>
-            <div className="rounded-2xl border border-border/60 bg-background px-4 py-3 text-xs text-muted-foreground">
-              {copy.toggleLabel}
-              <button
-                type="button"
-                onClick={handleModeToggle}
-                className="ml-2 font-semibold text-primary hover:text-primary/80"
-              >
-                {copy.toggleAction}
-              </button>
-            </div>
           </div>
 
           {error ? (
