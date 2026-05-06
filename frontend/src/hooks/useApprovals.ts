@@ -4,7 +4,9 @@ import {
   getApproval,
   createApproval,
   updateApproval,
+  getPendingApprovals,
   type Approval,
+  type PendingApprovalItem,
 } from "../api/approvals";
 
 // Query hooks
@@ -20,6 +22,13 @@ export const useApproval = (id: string) => {
     queryKey: ["approvals", id],
     queryFn: () => getApproval(id),
     enabled: !!id,
+  });
+};
+
+export const usePendingApprovals = () => {
+  return useQuery<PendingApprovalItem[]>({
+    queryKey: ["approvals", "pending"],
+    queryFn: getPendingApprovals,
   });
 };
 
