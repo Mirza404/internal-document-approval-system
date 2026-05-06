@@ -9,6 +9,12 @@ using Xunit;
 
 public sealed class ApplicationServiceTests
 {
+    private static readonly Guid UserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    private static readonly Guid HrDocumentTypeId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+    private static readonly Guid FinanceDocumentTypeId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+    private static readonly Guid ContractDocumentTypeId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
+    private static readonly Guid GenericDocumentTypeId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+
     [Fact]
     public async Task CreateDocumentAsync_RequiresExplicitDocumentTypeAndCreator()
     {
@@ -18,12 +24,113 @@ public sealed class ApplicationServiceTests
             new FakeUserRepository());
 
         var result = await service.CreateAsync(
-            new CreateDocumentCommand("Request", null, null, null, null),
+            CreateCommand("Request"),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
         Assert.Equal("DocumentTypeId is required.", result.Error);
+    }
+
+    [Fact]
+    public async Task CreateDocumentAsync_HrDocumentsRequireLeaveMetadata()
+    {
+        var service = new DocumentService(
+            new FakeDocumentRepository(),
+            new FakeDocumentTypeRepository(CreateDocumentType(HrDocumentTypeId, "HR")),
+            new FakeUserRepository(userExists: true));
+
+        var result = await service.CreateAsync(
+            CreateCommand("Leave request", documentTypeId: HrDocumentTypeId, createdByUserId: UserId),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        Assert.Equal("HR documents require LeaveType.", result.Error);
+    }
+
+    [Fact]
+    public async Task CreateDocumentAsync_FinanceDocumentsRequireAmountAndBudgetCode()
+    {
+        var service = new DocumentService(
+            new FakeDocumentRepository(),
+            new FakeDocumentTypeRepository(CreateDocumentType(FinanceDocumentTypeId, "Finance")),
+            new FakeUserRepository(userExists: true));
+
+        var result = await service.CreateAsync(
+            CreateCommand("Budget request", documentTypeId: FinanceDocumentTypeId, createdByUserId: UserId),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        Assert.Equal("Finance documents require Amount greater than 0.", result.Error);
+    }
+
+    [Fact]
+    public async Task CreateDocumentAsync_ContractDocumentsRequireCounterpartyOrAttachmentNote()
+    {
+        var service = new DocumentService(
+            new FakeDocumentRepository(),
+            new FakeDocumentTypeRepository(CreateDocumentType(ContractDocumentTypeId, "Contract")),
+            new FakeUserRepository(userExists: true));
+
+        var result = await service.CreateAsync(
+            CreateCommand("Service agreement", documentTypeId: ContractDocumentTypeId, createdByUserId: UserId),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        Assert.Equal("Contract documents require Counterparty or AttachmentNote.", result.Error);
+    }
+
+    [Fact]
+    public async Task CreateDocumentAsync_GenericDocumentsDoNotRequireMetadata()
+    {
+        var documentRepository = new FakeDocumentRepository();
+        var service = new DocumentService(
+            documentRepository,
+            new FakeDocumentTypeRepository(CreateDocumentType(GenericDocumentTypeId, "Generic")),
+            new FakeUserRepository(userExists: true));
+
+        var result = await service.CreateAsync(
+            CreateCommand("General note", "Description", GenericDocumentTypeId, UserId),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(documentRepository.Document);
+        Assert.Equal("General note", documentRepository.Document.Title);
+    }
+
+    [Fact]
+    public async Task UpdateDocumentAsync_ChangingCategoryValidatesMetadata()
+    {
+        var documentId = Guid.NewGuid();
+        var documentRepository = new FakeDocumentRepository
+        {
+            Document = new Document
+            {
+                Id = documentId,
+                Title = "Existing document",
+                Description = "Description",
+                DocumentTypeId = GenericDocumentTypeId,
+                CreatedByUserId = UserId
+            }
+        };
+        var service = new DocumentService(
+            documentRepository,
+            new FakeDocumentTypeRepository(
+                CreateDocumentType(GenericDocumentTypeId, "Generic"),
+                CreateDocumentType(HrDocumentTypeId, "HR")),
+            new FakeUserRepository());
+
+        var result = await service.UpdateAsync(
+            documentId,
+            UpdateCommand(documentTypeId: HrDocumentTypeId),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        Assert.Equal("HR documents require LeaveType.", result.Error);
     }
 
     [Fact]
@@ -59,7 +166,7 @@ public sealed class ApplicationServiceTests
 
     private sealed class FakeDocumentRepository : IDocumentRepository
     {
-        public Document? Document { get; init; }
+        public Document? Document { get; set; }
 
         public Task<List<Document>> GetAllAsync(CancellationToken cancellationToken)
         {
@@ -73,6 +180,7 @@ public sealed class ApplicationServiceTests
 
         public void Add(Document document)
         {
+            Document = document;
         }
 
         public void Remove(Document document)
@@ -111,26 +219,46 @@ public sealed class ApplicationServiceTests
 
     private sealed class FakeDocumentTypeRepository : IDocumentTypeRepository
     {
+        private readonly IReadOnlyList<DocumentType> documentTypes;
+
+        public FakeDocumentTypeRepository(params DocumentType[] documentTypes)
+        {
+            this.documentTypes = documentTypes;
+        }
+
         public Task<IReadOnlyList<DocumentCategory>> GetCategoriesAsync(CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<DocumentCategory>>([]);
+            return Task.FromResult<IReadOnlyList<DocumentCategory>>(
+                documentTypes.Select(x => x.Category).DistinctBy(x => x.Id).ToList());
         }
 
         public Task<IReadOnlyList<DocumentType>> GetAllAsync(CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<DocumentType>>([]);
+            return Task.FromResult(documentTypes);
+        }
+
+        public Task<DocumentType?> GetByIdWithCategoryAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(documentTypes.SingleOrDefault(x => x.Id == id));
         }
 
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         {
-            return Task.FromResult(false);
+            return Task.FromResult(documentTypes.Any(x => x.Id == id));
         }
     }
 
     private sealed class FakeUserRepository : IUserRepository
     {
+        private readonly bool userExists;
+
+        public FakeUserRepository(bool userExists = false)
+        {
+            this.userExists = userExists;
+        }
+
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
-            => Task.FromResult(false);
+            => Task.FromResult(userExists);
 
         public Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken)
             => Task.FromResult<User?>(null);
@@ -143,5 +271,86 @@ public sealed class ApplicationServiceTests
 
         public Task UpdateAsync(User user, CancellationToken cancellationToken)
             => Task.CompletedTask;
+    }
+
+    private static DocumentType CreateDocumentType(Guid id, string categoryName)
+    {
+        var category = new DocumentCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = categoryName,
+            Description = $"{categoryName} category"
+        };
+
+        return new DocumentType
+        {
+            Id = id,
+            Name = $"{categoryName} document",
+            Description = $"{categoryName} document type",
+            CategoryId = category.Id,
+            Category = category
+        };
+    }
+
+    private static CreateDocumentCommand CreateCommand(
+        string title,
+        string? description = null,
+        Guid? documentTypeId = null,
+        Guid? createdByUserId = null,
+        string? priority = null,
+        string? leaveType = null,
+        DateOnly? leaveStartDate = null,
+        DateOnly? leaveEndDate = null,
+        decimal? amount = null,
+        string? budgetCode = null,
+        string? counterparty = null,
+        string? attachmentNote = null)
+    {
+        return new CreateDocumentCommand(
+            title,
+            description,
+            documentTypeId,
+            createdByUserId,
+            priority,
+            leaveType,
+            leaveStartDate,
+            leaveEndDate,
+            amount,
+            budgetCode,
+            counterparty,
+            attachmentNote);
+    }
+
+    private static UpdateDocumentCommand UpdateCommand(
+        string? title = null,
+        string? description = null,
+        Guid? documentTypeId = null,
+        Guid? createdByUserId = null,
+        string? status = null,
+        string? priority = null,
+        DateTime? approvedAt = null,
+        string? leaveType = null,
+        DateOnly? leaveStartDate = null,
+        DateOnly? leaveEndDate = null,
+        decimal? amount = null,
+        string? budgetCode = null,
+        string? counterparty = null,
+        string? attachmentNote = null)
+    {
+        return new UpdateDocumentCommand(
+            title,
+            description,
+            documentTypeId,
+            createdByUserId,
+            status,
+            priority,
+            approvedAt,
+            leaveType,
+            leaveStartDate,
+            leaveEndDate,
+            amount,
+            budgetCode,
+            counterparty,
+            attachmentNote);
     }
 }
