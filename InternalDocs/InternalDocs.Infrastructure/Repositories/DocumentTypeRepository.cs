@@ -27,6 +27,14 @@ public sealed class DocumentTypeRepository(AppDbContext dbContext) : IDocumentTy
             .ToListAsync(cancellationToken);
     }
 
+    public Task<DocumentType?> GetByIdWithCategoryAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return dbContext.DocumentTypes
+            .AsNoTracking()
+            .Include(x => x.Category)
+            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
     public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.DocumentTypes.AnyAsync(x => x.Id == id, cancellationToken);
