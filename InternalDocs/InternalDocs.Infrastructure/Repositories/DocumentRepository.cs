@@ -39,10 +39,23 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public Task<Document?> GetByIdAndCreatedByUserIdAsync(Guid id, Guid userId, CancellationToken cancellationToken)
+    public Task<List<Document>> GetPendingApprovalQueueAsync(CancellationToken cancellationToken)
     {
         return dbContext.Documents
             .AsNoTracking()
+            .Include(x => x.DocumentType)
+            .Include(x => x.CreatedByUser)
+            .Where(x => x.Status == "PendingApproval")
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<Document?> GetByIdAndCreatedByUserIdAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.Documents
             .Include(x => x.DocumentType)
                 .ThenInclude(x => x.Category)
             .Include(x => x.Versions)

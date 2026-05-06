@@ -292,6 +292,8 @@ public sealed class ApplicationServiceTests
         {
             return Task.CompletedTask;
         }
+
+        public Task<List<Document>> GetPendingApprovalQueueAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 
     private sealed class FakeApprovalActionRepository : IApprovalActionRepository
