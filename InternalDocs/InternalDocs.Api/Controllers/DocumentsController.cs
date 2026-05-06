@@ -44,7 +44,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             return Unauthorized();
         }
 
-        var command = new CreateDocumentCommand(
+        var command = new SubmitDocumentCommand(
             request.Title,
             request.Description,
             request.DocumentTypeId,
@@ -58,7 +58,7 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             request.Counterparty,
             request.AttachmentNote);
 
-        var result = await documentService.CreateAsync(command, cancellationToken);
+        var result = await documentService.SubmitAsync(command, cancellationToken);
         if (!result.Succeeded || result.Value is null)
         {
             return ToDocumentResponse(result);
