@@ -5,9 +5,15 @@ export interface AuthResponse {
   email: string;
   fullName: string;
   role: string;
+  accessToken: string;
 }
 
-export type CurrentUserResponse = AuthResponse;
+export interface CurrentUserResponse {
+  userId: string;
+  email: string;
+  fullName: string;
+  role: string;
+}
 
 export const getCurrentUser = (): Promise<CurrentUserResponse> =>
   apiClient.get("/auth/me");

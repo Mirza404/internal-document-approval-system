@@ -19,8 +19,12 @@ if (!clientId || !tenantId || !apiScope) {
   );
 }
 
-export const loginRequest = {
+export const apiLoginRequest = {
   scopes: [apiScope],
+};
+
+export const graphLoginRequest = {
+  scopes: ["User.Read"],
 };
 
 const msalConfig: Configuration = {
@@ -76,14 +80,38 @@ export const getApiAccessToken = async () => {
 
   try {
     const response = await msalInstance.acquireTokenSilent({
-      ...loginRequest,
+      ...apiLoginRequest,
       account,
     });
     return response.accessToken;
   } catch (error) {
     if (error instanceof InteractionRequiredAuthError) {
       await msalInstance.acquireTokenRedirect({
-        ...loginRequest,
+        ...apiLoginRequest,
+        account,
+      });
+    }
+
+    throw error;
+  }
+};
+
+export const getGraphAccessToken = async () => {
+  const account = getRequestAccount();
+  if (!account) {
+    return null;
+  }
+
+  try {
+    const response = await msalInstance.acquireTokenSilent({
+      ...graphLoginRequest,
+      account,
+    });
+    return response.accessToken;
+  } catch (error) {
+    if (error instanceof InteractionRequiredAuthError) {
+      await msalInstance.acquireTokenRedirect({
+        ...graphLoginRequest,
         account,
       });
     }
