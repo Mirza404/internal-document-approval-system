@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<Document> Documents { get; set; } = null!;
+    public DbSet<DocumentCategory> DocumentCategories { get; set; } = null!;
     public DbSet<DocumentType> DocumentTypes { get; set; } = null!;
     public DbSet<DocumentVersion> DocumentVersions { get; set; } = null!;
     public DbSet<ApprovalAction> ApprovalActions { get; set; } = null!;
@@ -37,12 +38,28 @@ public class AppDbContext : DbContext
                   .HasFilter("\"MicrosoftObjectId\" IS NOT NULL");
         });
 
+        // DocumentCategory Configuration
+        modelBuilder.Entity<DocumentCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.HasIndex(e => e.Name).IsUnique();
+        });
+
         // DocumentType Configuration
         modelBuilder.Entity<DocumentType>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(256);
             entity.Property(e => e.Description).HasMaxLength(500);
+
+            entity.HasOne(e => e.Category)
+                .WithMany(c => c.DocumentTypes)
+                .HasForeignKey(e => e.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => e.CategoryId);
         });
 
         // Document Configuration
@@ -53,6 +70,11 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Description).HasMaxLength(2000);
             entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Priority).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.LeaveType).HasMaxLength(100);
+            entity.Property(e => e.BudgetCode).HasMaxLength(100);
+            entity.Property(e => e.Counterparty).HasMaxLength(256);
+            entity.Property(e => e.AttachmentNote).HasMaxLength(1000);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
 
             entity.HasOne(e => e.DocumentType)
                 .WithMany(dt => dt.Documents)
