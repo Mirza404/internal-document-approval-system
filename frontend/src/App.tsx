@@ -69,7 +69,9 @@ function App() {
       <Route
         path="/reviews"
         element={
-          <ProtectedRoute roles={["Reviewer"]}>{dashboardElement}</ProtectedRoute>
+          <ProtectedRoute roles={["Reviewer"]}>
+            {dashboardElement}
+          </ProtectedRoute>
         }
       />
       <Route path="*" element={<Navigate to={defaultRoute} replace />} />
