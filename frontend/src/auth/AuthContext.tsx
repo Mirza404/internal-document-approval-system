@@ -4,6 +4,7 @@ import {
   loadAuthToken,
   loadAuthUser,
   saveAuthSession,
+  type AuthUser,
 } from "./authStorage";
 import { AuthContext } from "./authContext";
 
