@@ -21,6 +21,37 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
         return Ok(documents.Select(DocumentResponse.FromDto).ToList());
     }
 
+    [HttpGet("my")]
+    [Authorize(Roles = "Employee")]
+    [ProducesResponseType(typeof(List<DocumentResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<DocumentResponse>>> GetMy(CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var documents = await documentService.GetByCreatedByUserIdAsync(userId.Value, cancellationToken);
+        return Ok(documents.Select(DocumentResponse.FromDto).ToList());
+    }
+
+    [HttpGet("my/{id:guid}")]
+    [Authorize(Roles = "Employee")]
+    [ProducesResponseType(typeof(DocumentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DocumentResponse>> GetMyById(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await documentService.GetByIdForUserAsync(id, userId.Value, cancellationToken);
+        return ToDocumentResponse(result);
+    }
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(DocumentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -98,7 +129,8 @@ public sealed class DocumentsController(IDocumentService documentService) : Cont
             request.Amount,
             request.BudgetCode,
             request.Counterparty,
-            request.AttachmentNote);
+            request.AttachmentNote,
+            request.ChangeNotes);
 
         var result = await documentService.UpdateAsync(id, command, cancellationToken);
         return ToDocumentResponse(result);

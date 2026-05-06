@@ -11,6 +11,21 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
     {
         return dbContext.Documents
             .AsNoTracking()
+            .Include(x => x.DocumentType)
+                .ThenInclude(x => x.Category)
+            .Include(x => x.Versions)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<List<Document>> GetByCreatedByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return dbContext.Documents
+            .AsNoTracking()
+            .Include(x => x.DocumentType)
+                .ThenInclude(x => x.Category)
+            .Include(x => x.Versions)
+            .Where(x => x.CreatedByUserId == userId)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -18,7 +33,20 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
     public Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.Documents
+            .Include(x => x.DocumentType)
+                .ThenInclude(x => x.Category)
+            .Include(x => x.Versions)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public Task<Document?> GetByIdAndCreatedByUserIdAsync(Guid id, Guid userId, CancellationToken cancellationToken)
+    {
+        return dbContext.Documents
+            .AsNoTracking()
+            .Include(x => x.DocumentType)
+                .ThenInclude(x => x.Category)
+            .Include(x => x.Versions)
+            .FirstOrDefaultAsync(x => x.Id == id && x.CreatedByUserId == userId, cancellationToken);
     }
 
     public void Add(Document document)

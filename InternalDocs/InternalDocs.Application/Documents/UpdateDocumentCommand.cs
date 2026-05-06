@@ -14,4 +14,5 @@ public sealed record UpdateDocumentCommand(
     decimal? Amount,
     string? BudgetCode,
     string? Counterparty,
-    string? AttachmentNote);
+    string? AttachmentNote,
+    string? ChangeNotes);
