@@ -4,5 +4,5 @@ public sealed record CreateDocumentCommand(
     string Title,
     string? Description,
     Guid? DocumentTypeId,
-    Guid? CreatedByUserId,
+    Guid CreatedByUserId,
     string? Priority);

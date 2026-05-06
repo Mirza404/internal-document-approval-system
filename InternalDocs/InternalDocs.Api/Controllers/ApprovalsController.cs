@@ -1,3 +1,4 @@
+using InternalDocs.Api.Authentication;
 using InternalDocs.Api.Contracts.Approvals;
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Approvals;
@@ -30,15 +31,22 @@ public sealed class ApprovalsController(IApprovalService approvalService) : Cont
     }
 
     [HttpPost]
+    [Authorize(Roles = "Approver")]
     [ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ApprovalResponse>> Create(
         [FromBody] CreateApprovalRequest request,
         CancellationToken cancellationToken)
     {
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
         var command = new CreateApprovalCommand(
             request.DocumentId,
-            request.ApproverId,
+            userId.Value,
             request.Status,
             request.Comments);
 
@@ -53,6 +61,7 @@ public sealed class ApprovalsController(IApprovalService approvalService) : Cont
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Approver")]
     [ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -61,7 +70,13 @@ public sealed class ApprovalsController(IApprovalService approvalService) : Cont
         [FromBody] UpdateApprovalRequest request,
         CancellationToken cancellationToken)
     {
-        var command = new UpdateApprovalCommand(request.Status, request.Comments);
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var command = new UpdateApprovalCommand(userId.Value, request.Status, request.Comments);
         var result = await approvalService.UpdateAsync(id, command, cancellationToken);
         return ToApprovalResponse(result);
     }

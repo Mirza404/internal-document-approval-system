@@ -18,7 +18,7 @@ public sealed class ApplicationServiceTests
             new FakeUserRepository());
 
         var result = await service.CreateAsync(
-            new CreateDocumentCommand("Request", null, null, null, null),
+            new CreateDocumentCommand("Request", null, null, Guid.NewGuid(), null),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -49,7 +49,7 @@ public sealed class ApplicationServiceTests
 
         var result = await service.UpdateAsync(
             approvalId,
-            new UpdateApprovalCommand("typo", null),
+            new UpdateApprovalCommand(approvalRepository.Approval.ApprovedByUserId, "typo", null),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -124,6 +124,47 @@ public sealed class ApplicationServiceTests
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         {
             return Task.FromResult(false);
+        }
+
+        public Task<DocumentCategory?> GetCategoryByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<DocumentCategory?>(null);
+        }
+
+        public Task<DocumentType?> GetDocumentTypeByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<DocumentType?>(null);
+        }
+
+        public Task<bool> CategoryHasDocumentTypesAsync(Guid categoryId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
+        }
+
+        public Task<bool> DocumentTypeHasDocumentsAsync(Guid documentTypeId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(false);
+        }
+
+        public void AddCategory(DocumentCategory category)
+        {
+        }
+
+        public void AddDocumentType(DocumentType documentType)
+        {
+        }
+
+        public void RemoveCategory(DocumentCategory category)
+        {
+        }
+
+        public void RemoveDocumentType(DocumentType documentType)
+        {
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
         }
     }
 

@@ -1,10 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Approvals;
 using InternalDocs.Application.DocumentCatalog;
 using InternalDocs.Application.Documents;
 using InternalDocs.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Tokens;
 
 LoadLocalEnvFile();
 
@@ -21,10 +24,30 @@ builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-builder.Services.Configure<JwtBearerOptions>(
-    JwtBearerDefaults.AuthenticationScheme,
-    options => options.MapInboundClaims = false);
+    .AddJwtBearer(options =>
+    {
+        var jwtSettings = builder.Configuration.GetSection("Jwt");
+        var secret = jwtSettings["Secret"];
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            throw new InvalidOperationException("Jwt:Secret is not configured.");
+        }
+
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwtSettings["Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(2),
+            NameClaimType = JwtRegisteredClaimNames.Name,
+            RoleClaimType = ClaimTypes.Role
+        };
+    });
 builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>
