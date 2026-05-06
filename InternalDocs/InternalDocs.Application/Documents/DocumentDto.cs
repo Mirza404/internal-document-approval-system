@@ -7,6 +7,8 @@ public sealed record DocumentDto(
     string Title,
     string Description,
     Guid DocumentTypeId,
+    string DocumentTypeName,
+    string DocumentCategoryName,
     Guid CreatedByUserId,
     string Status,
     string Priority,
@@ -19,15 +21,24 @@ public sealed record DocumentDto(
     string? AttachmentNote,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    DateTime? ApprovedAt)
+    DateTime? ApprovedAt,
+    int? LatestVersionNumber,
+    DateTime? LatestVersionCreatedAt,
+    string? LatestVersionChangeNotes)
 {
     public static DocumentDto FromEntity(Document document)
     {
+        var latestVersion = document.Versions
+            .OrderByDescending(version => version.VersionNumber)
+            .FirstOrDefault();
+
         return new DocumentDto(
             document.Id,
             document.Title,
             document.Description,
             document.DocumentTypeId,
+            document.DocumentType?.Name ?? string.Empty,
+            document.DocumentType?.Category?.Name ?? string.Empty,
             document.CreatedByUserId,
             document.Status,
             document.Priority,
@@ -40,6 +51,9 @@ public sealed record DocumentDto(
             document.AttachmentNote,
             document.CreatedAt,
             document.UpdatedAt,
-            document.ApprovedAt);
+            document.ApprovedAt,
+            latestVersion?.VersionNumber,
+            latestVersion?.CreatedAt,
+            latestVersion?.ChangeNotes);
     }
 }
