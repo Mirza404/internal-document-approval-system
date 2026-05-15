@@ -6,7 +6,10 @@ using InternalDocs.Application.Approvals;
 using InternalDocs.Application.DocumentCatalog;
 using InternalDocs.Application.Documents;
 using InternalDocs.Infrastructure;
+using InternalDocs.Infrastructure.Data;
+using InternalDocs.Infrastructure.Seeds;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 LoadLocalEnvFile();
@@ -56,7 +59,9 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:5173",
-                "http://localhost:5174")
+                "http://localhost:5174",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:5174")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -70,9 +75,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
     app.UseCors("DevCors");
+
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+    await DatabaseSeeder.SeedDocumentTypesAsync(dbContext);
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
