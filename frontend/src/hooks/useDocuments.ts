@@ -5,7 +5,7 @@ import {
   createDocument,
   updateDocument,
   deleteDocument,
-  type Document,
+  type UpdateDocumentRequest,
 } from "../api/documents";
 
 // Query hooks
@@ -40,7 +40,7 @@ export const useUpdateDocument = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Document> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateDocumentRequest }) =>
       updateDocument(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
