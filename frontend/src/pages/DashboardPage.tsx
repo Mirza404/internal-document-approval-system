@@ -525,7 +525,9 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
               {latestDocument?.latestVersionNumber != null && (
                 <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  Latest version v{latestDocument.latestVersionNumber}
+                  Latest version{" "}
+                  {latestDocument.latestVersionLabel ??
+                    `v${latestDocument.latestVersionNumber}`}
                   {latestDocument.latestVersionCreatedAt
                     ? ` · ${formatDate(latestDocument.latestVersionCreatedAt)}`
                     : ""}
@@ -850,7 +852,10 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                       {formatDate(document.updatedAt ?? document.createdAt)}
                     </span>
                     {document.latestVersionNumber != null && (
-                      <span>v{document.latestVersionNumber}</span>
+                      <span>
+                        {document.latestVersionLabel ??
+                          `v${document.latestVersionNumber}`}
+                      </span>
                     )}
                   </div>
                   {document.latestVersionChangeNotes && (
