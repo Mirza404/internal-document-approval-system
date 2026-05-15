@@ -18,6 +18,9 @@ export interface Document {
   createdAt: string;
   updatedAt?: string | null;
   approvedAt?: string | null;
+  latestVersionNumber?: number | null;
+  latestVersionCreatedAt?: string | null;
+  latestVersionChangeNotes?: string | null;
 }
 
 export interface CreateDocumentRequest {
