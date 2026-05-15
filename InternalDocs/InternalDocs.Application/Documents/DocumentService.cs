@@ -313,13 +313,43 @@ public sealed class DocumentService(
 
     private static string? ValidateDocumentMetadata(Document document, DocumentType documentType)
     {
-        return documentType.Category.Name.Trim().ToUpperInvariant() switch
+        return GetDocumentMetadataKind(documentType) switch
         {
-            "HR" => ValidateHrDocument(document),
-            "FINANCE" => ValidateFinanceDocument(document),
-            "CONTRACT" => ValidateContractDocument(document),
-            "GENERIC" => null,
+            DocumentMetadataKind.Leave => ValidateHrDocument(document),
+            DocumentMetadataKind.Payment => ValidatePaymentDocument(document),
+            DocumentMetadataKind.Internship => ValidateInternshipDocument(document),
+            DocumentMetadataKind.None => null,
             _ => $"Document type category '{documentType.Category.Name}' is not supported."
+        };
+    }
+
+    private static DocumentMetadataKind GetDocumentMetadataKind(DocumentType documentType)
+    {
+        var typeName = NormalizeCatalogName(documentType.Name);
+        if (typeName is "TRANSCRIPT" or "CERTIFICATE")
+        {
+            return DocumentMetadataKind.None;
+        }
+
+        if (typeName == "INTERNSHIP SUBMISSION")
+        {
+            return DocumentMetadataKind.Internship;
+        }
+
+        if (typeName == "PAYMENT PROCEDURE")
+        {
+            return DocumentMetadataKind.Payment;
+        }
+
+        return NormalizeCatalogName(documentType.Category.Name) switch
+        {
+            "HR" => DocumentMetadataKind.Leave,
+            "FINANCE" => DocumentMetadataKind.Payment,
+            "CONTRACT" => DocumentMetadataKind.Internship,
+            "GENERIC" or "ACADEMIC RECORDS" or "STUDENT SERVICES" => DocumentMetadataKind.None,
+            "INTERNSHIPS" => DocumentMetadataKind.Internship,
+            "PAYMENTS" => DocumentMetadataKind.Payment,
+            _ => DocumentMetadataKind.Unsupported
         };
     }
 
@@ -343,30 +373,35 @@ public sealed class DocumentService(
         return null;
     }
 
-    private static string? ValidateFinanceDocument(Document document)
+    private static string? ValidatePaymentDocument(Document document)
     {
         if (!document.Amount.HasValue || document.Amount.Value <= 0)
         {
-            return "Finance documents require Amount greater than 0.";
+            return "Payment Procedure documents require Amount greater than 0.";
         }
 
         if (string.IsNullOrWhiteSpace(document.BudgetCode))
         {
-            return "Finance documents require BudgetCode.";
+            return "Payment Procedure documents require BudgetCode.";
         }
 
         return null;
     }
 
-    private static string? ValidateContractDocument(Document document)
+    private static string? ValidateInternshipDocument(Document document)
     {
         if (string.IsNullOrWhiteSpace(document.Counterparty)
             && string.IsNullOrWhiteSpace(document.AttachmentNote))
         {
-            return "Contract documents require Counterparty or AttachmentNote.";
+            return "Internship Submission documents require Counterparty or AttachmentNote.";
         }
 
         return null;
+    }
+
+    private static string NormalizeCatalogName(string value)
+    {
+        return value.Trim().ToUpperInvariant();
     }
 
     private static string? NormalizeOptional(string? value)
@@ -393,5 +428,14 @@ public sealed class DocumentService(
             document.AttachmentNote,
             document.CreatedAt
         });
+    }
+
+    private enum DocumentMetadataKind
+    {
+        None,
+        Leave,
+        Payment,
+        Internship,
+        Unsupported
     }
 }

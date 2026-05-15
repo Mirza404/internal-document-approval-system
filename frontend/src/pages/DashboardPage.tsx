@@ -141,6 +141,38 @@ const clearDocumentMetadata = (
   attachmentNote: "",
 });
 
+const getDocumentMetadataKind = (
+  documentType?: { categoryName: string; name: string },
+) => {
+  const typeName = documentType?.name.trim().toLowerCase();
+  const categoryName = documentType?.categoryName.trim().toLowerCase();
+
+  if (typeName === "payment procedure" || categoryName === "payments") {
+    return "payment";
+  }
+
+  if (
+    typeName === "internship submission" ||
+    categoryName === "internships"
+  ) {
+    return "internship";
+  }
+
+  if (categoryName === "hr") {
+    return "leave";
+  }
+
+  if (categoryName === "finance") {
+    return "payment";
+  }
+
+  if (categoryName === "contract") {
+    return "internship";
+  }
+
+  return "none";
+};
+
 const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const [form, setForm] = useState<SubmissionFormState>(initialFormState);
   const [resubmitForm, setResubmitForm] = useState<SubmissionFormState | null>(
@@ -283,9 +315,9 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
     update: (field: keyof SubmissionFormState, value: string) => void,
     documentType = selectedType,
   ) => {
-    const category = documentType?.categoryName.trim().toLowerCase();
+    const metadataKind = getDocumentMetadataKind(documentType);
 
-    if (category === "hr") {
+    if (metadataKind === "leave") {
       return (
         <div className="grid gap-4 md:grid-cols-3">
           <label className="space-y-2">
@@ -321,7 +353,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
       );
     }
 
-    if (category === "finance") {
+    if (metadataKind === "payment") {
       return (
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2">
@@ -337,7 +369,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
             />
           </label>
           <label className="space-y-2">
-            <span className={labelClass}>Budget code</span>
+            <span className={labelClass}>Payment reference</span>
             <input
               className={fieldClass}
               required
@@ -349,11 +381,11 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
       );
     }
 
-    if (category === "contract") {
+    if (metadataKind === "internship") {
       return (
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2">
-            <span className={labelClass}>Counterparty</span>
+            <span className={labelClass}>Organization</span>
             <input
               className={fieldClass}
               value={state.counterparty}
@@ -361,7 +393,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
             />
           </label>
           <label className="space-y-2">
-            <span className={labelClass}>Attachment note</span>
+            <span className={labelClass}>Supporting note</span>
             <input
               className={fieldClass}
               value={state.attachmentNote}
@@ -372,16 +404,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
       );
     }
 
-    return (
-      <label className="space-y-2">
-        <span className={labelClass}>Attachment note</span>
-        <input
-          className={fieldClass}
-          value={state.attachmentNote}
-          onChange={(event) => update("attachmentNote", event.target.value)}
-        />
-      </label>
-    );
+    return null;
   };
 
   return (

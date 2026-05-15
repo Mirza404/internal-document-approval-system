@@ -10,10 +10,10 @@ using Xunit;
 public sealed class ApplicationServiceTests
 {
     private static readonly Guid UserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-    private static readonly Guid HrDocumentTypeId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
-    private static readonly Guid FinanceDocumentTypeId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
-    private static readonly Guid ContractDocumentTypeId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
-    private static readonly Guid GenericDocumentTypeId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+    private static readonly Guid TranscriptDocumentTypeId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    private static readonly Guid CertificateDocumentTypeId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+    private static readonly Guid InternshipDocumentTypeId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+    private static readonly Guid PaymentDocumentTypeId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
     [Fact]
     public async Task SubmitDocumentAsync_RequiresExplicitDocumentTypeAndCreator()
@@ -33,76 +33,82 @@ public sealed class ApplicationServiceTests
     }
 
     [Fact]
-    public async Task SubmitDocumentAsync_HrDocumentsRequireLeaveMetadata()
+    public async Task SubmitDocumentAsync_PaymentProcedureRequiresAmountAndPaymentReference()
     {
         var service = new DocumentService(
             new FakeDocumentRepository(),
-            new FakeDocumentTypeRepository(CreateDocumentType(HrDocumentTypeId, "HR")),
+            new FakeDocumentTypeRepository(CreateDocumentType(PaymentDocumentTypeId, "Payment Procedure", "Payments")),
             new FakeUserRepository(userExists: true));
 
         var result = await service.SubmitAsync(
-            SubmitCommand("Leave request", documentTypeId: HrDocumentTypeId, createdByUserId: UserId),
+            SubmitCommand("Payment request", documentTypeId: PaymentDocumentTypeId, createdByUserId: UserId),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
-        Assert.Equal("HR documents require LeaveType.", result.Error);
+        Assert.Equal("Payment Procedure documents require Amount greater than 0.", result.Error);
     }
 
     [Fact]
-    public async Task SubmitDocumentAsync_FinanceDocumentsRequireAmountAndBudgetCode()
+    public async Task SubmitDocumentAsync_InternshipSubmissionRequiresOrganizationOrSupportingNote()
     {
         var service = new DocumentService(
             new FakeDocumentRepository(),
-            new FakeDocumentTypeRepository(CreateDocumentType(FinanceDocumentTypeId, "Finance")),
+            new FakeDocumentTypeRepository(CreateDocumentType(InternshipDocumentTypeId, "Internship Submission", "Internships")),
             new FakeUserRepository(userExists: true));
 
         var result = await service.SubmitAsync(
-            SubmitCommand("Budget request", documentTypeId: FinanceDocumentTypeId, createdByUserId: UserId),
+            SubmitCommand("Internship request", documentTypeId: InternshipDocumentTypeId, createdByUserId: UserId),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
-        Assert.Equal("Finance documents require Amount greater than 0.", result.Error);
+        Assert.Equal("Internship Submission documents require Counterparty or AttachmentNote.", result.Error);
     }
 
     [Fact]
-    public async Task SubmitDocumentAsync_ContractDocumentsRequireCounterpartyOrAttachmentNote()
-    {
-        var service = new DocumentService(
-            new FakeDocumentRepository(),
-            new FakeDocumentTypeRepository(CreateDocumentType(ContractDocumentTypeId, "Contract")),
-            new FakeUserRepository(userExists: true));
-
-        var result = await service.SubmitAsync(
-            SubmitCommand("Service agreement", documentTypeId: ContractDocumentTypeId, createdByUserId: UserId),
-            CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
-        Assert.Equal("Contract documents require Counterparty or AttachmentNote.", result.Error);
-    }
-
-    [Fact]
-    public async Task SubmitDocumentAsync_GenericDocumentsDoNotRequireMetadata()
+    public async Task SubmitDocumentAsync_TranscriptDocumentsDoNotRequireMetadata()
     {
         var documentRepository = new FakeDocumentRepository();
         var service = new DocumentService(
             documentRepository,
-            new FakeDocumentTypeRepository(CreateDocumentType(GenericDocumentTypeId, "Generic")),
+            new FakeDocumentTypeRepository(CreateDocumentType(TranscriptDocumentTypeId, "Transcript", "Academic Records")),
             new FakeUserRepository(userExists: true));
 
         var result = await service.SubmitAsync(
-            SubmitCommand("General note", "Description", GenericDocumentTypeId, UserId),
+            SubmitCommand("Transcript request", "Description", TranscriptDocumentTypeId, UserId),
             CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.NotNull(documentRepository.Document);
-        Assert.Equal("General note", documentRepository.Document.Title);
+        Assert.Equal("Transcript request", documentRepository.Document.Title);
         Assert.Equal("PendingApproval", documentRepository.Document.Status);
         var version = Assert.Single(documentRepository.Document.Versions);
         Assert.Equal(1, version.VersionNumber);
-        Assert.Contains("\"Title\":\"General note\"", version.Content);
+        Assert.Contains("\"Title\":\"Transcript request\"", version.Content);
+        Assert.Equal("Initial submission", version.ChangeNotes);
+    }
+
+    [Fact]
+    public async Task SubmitDocumentAsync_CertificateDocumentsDoNotRequireMetadata()
+    {
+        var documentRepository = new FakeDocumentRepository();
+        var service = new DocumentService(
+            documentRepository,
+            new FakeDocumentTypeRepository(CreateDocumentType(CertificateDocumentTypeId, "Certificate", "Student Services")),
+            new FakeUserRepository(userExists: true));
+
+        var result = await service.SubmitAsync(
+            SubmitCommand("Certificate request", "Description", CertificateDocumentTypeId, UserId),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(documentRepository.Document);
+        Assert.Equal("Certificate request", documentRepository.Document.Title);
+        Assert.Equal("PendingApproval", documentRepository.Document.Status);
+        var version = Assert.Single(documentRepository.Document.Versions);
+        Assert.Equal(1, version.VersionNumber);
+        Assert.Contains("\"Title\":\"Certificate request\"", version.Content);
         Assert.Equal("Initial submission", version.ChangeNotes);
     }
 
@@ -117,25 +123,25 @@ public sealed class ApplicationServiceTests
                 Id = documentId,
                 Title = "Existing document",
                 Description = "Description",
-                DocumentTypeId = GenericDocumentTypeId,
+                DocumentTypeId = TranscriptDocumentTypeId,
                 CreatedByUserId = UserId
             }
         };
         var service = new DocumentService(
             documentRepository,
             new FakeDocumentTypeRepository(
-                CreateDocumentType(GenericDocumentTypeId, "Generic"),
-                CreateDocumentType(HrDocumentTypeId, "HR")),
+                CreateDocumentType(TranscriptDocumentTypeId, "Transcript", "Academic Records"),
+                CreateDocumentType(PaymentDocumentTypeId, "Payment Procedure", "Payments")),
             new FakeUserRepository());
 
         var result = await service.UpdateAsync(
             documentId,
-            UpdateCommand(documentTypeId: HrDocumentTypeId),
+            UpdateCommand(documentTypeId: PaymentDocumentTypeId),
             CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
-        Assert.Equal("HR documents require LeaveType.", result.Error);
+        Assert.Equal("Payment Procedure documents require Amount greater than 0.", result.Error);
     }
 
     [Fact]
@@ -319,7 +325,7 @@ public sealed class ApplicationServiceTests
             => Task.CompletedTask;
     }
 
-    private static DocumentType CreateDocumentType(Guid id, string categoryName)
+    private static DocumentType CreateDocumentType(Guid id, string typeName, string categoryName)
     {
         var category = new DocumentCategory
         {
@@ -331,8 +337,8 @@ public sealed class ApplicationServiceTests
         return new DocumentType
         {
             Id = id,
-            Name = $"{categoryName} document",
-            Description = $"{categoryName} document type",
+            Name = typeName,
+            Description = $"{typeName} document type",
             CategoryId = category.Id,
             Category = category
         };
