@@ -68,6 +68,14 @@ const fieldClass =
 
 const labelClass = "text-xs font-semibold uppercase text-muted-foreground";
 
+const statusLabels: Record<string, string> = {
+  PendingApproval: "Pending Approval",
+  UnderReview: "Under Review",
+  ChangesRequested: "Changes Requested",
+};
+
+const formatDocumentStatus = (status: string) => statusLabels[status] ?? status;
+
 const formatDate = (value?: string | null) => {
   if (!value) {
     return "Not set";
@@ -476,7 +484,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                       "bg-muted text-muted-foreground"
                     }
                   >
-                    {latestDocument.status}
+                    {formatDocumentStatus(latestDocument.status)}
                   </Pill>
                 )}
               </div>
@@ -840,7 +848,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                         "bg-muted text-muted-foreground"
                       }
                     >
-                      {document.status}
+                      {formatDocumentStatus(document.status)}
                     </Pill>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
