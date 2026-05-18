@@ -11,6 +11,7 @@ using InternalDocs.Infrastructure.Seeds;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 LoadLocalEnvFile();
 
@@ -19,12 +20,39 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "InternalDocs API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter JWT token"
+    });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecuritySchemeReference("Bearer", document),
+            new List<string>()
+        }
+    });
+});
 
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IDocumentCatalogService, DocumentCatalogService>();
 builder.Services.AddScoped<IApprovalService, ApprovalService>();
 builder.Services.AddInfrastructure(builder.Configuration);
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -51,6 +79,7 @@ builder.Services
             RoleClaimType = ClaimTypes.Role
         };
     });
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddCors(options =>

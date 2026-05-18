@@ -14,7 +14,8 @@ public sealed class ApprovalService(
     {
         ["Pending"] = "Pending",
         ["Approved"] = "Approved",
-        ["Rejected"] = "Rejected"
+        ["Rejected"] = "Rejected",
+        ["ChangesRequested"] = "ChangesRequested"
     };
 
     public async Task<IReadOnlyList<ApprovalDto>> GetAllAsync(CancellationToken cancellationToken)
@@ -133,4 +134,77 @@ public sealed class ApprovalService(
 
         return AllowedStatuses.TryGetValue(rawStatus.Trim(), out status!);
     }
+
+public async Task<ServiceResult<ApprovalDto>> DecideAsync(
+    ApprovalDecisionCommand command,
+    string action,
+    CancellationToken cancellationToken)
+{
+    if (command.DocumentId == Guid.Empty)
+    {
+        return Validation("DocumentId is required.");
+    }
+
+    if (command.ApproverId == Guid.Empty)
+    {
+        return Validation("ApproverId is required.");
+    }
+
+    if (!await users.ExistsAsync(command.ApproverId, cancellationToken))
+    {
+        return Validation("ApproverId does not exist.");
+    }
+
+    var document = await documents.GetByIdAsync(command.DocumentId, cancellationToken);
+    if (document is null)
+    {
+        return ServiceResult<ApprovalDto>.Failure(
+            "Document was not found.",
+            ServiceErrorType.NotFound);
+    }
+
+    if (!string.Equals(document.Status, "PendingApproval", StringComparison.OrdinalIgnoreCase))
+    {
+        return ServiceResult<ApprovalDto>.Failure(
+            "Only documents pending approval can be approved, rejected, or sent back for changes.",
+            ServiceErrorType.Conflict);
+    }
+
+    var normalizedAction = action switch
+    {
+        "approve" => "Approved",
+        "reject" => "Rejected",
+        "request-changes" => "ChangesRequested",
+        _ => string.Empty
+    };
+
+    if (string.IsNullOrWhiteSpace(normalizedAction))
+    {
+        return Validation("Invalid approval action.");
+    }
+
+    var now = DateTime.UtcNow;
+
+    var approval = new ApprovalAction
+    {
+        Id = Guid.NewGuid(),
+        DocumentId = document.Id,
+        ApprovedByUserId = command.ApproverId,
+        Action = normalizedAction,
+        Comments = command.Comments?.Trim(),
+        CreatedAt = now
+    };
+
+    document.Status = normalizedAction;
+    document.UpdatedAt = now;
+    document.ApprovedAt = normalizedAction == "Approved" ? now : null;
+
+    approvals.Add(approval);
+    await approvals.SaveChangesAsync(cancellationToken);
+
+    return ServiceResult<ApprovalDto>.Success(ApprovalDto.FromEntity(approval));
+}
+
+
+
 }

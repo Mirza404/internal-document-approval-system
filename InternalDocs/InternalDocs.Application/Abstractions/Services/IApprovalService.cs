@@ -10,4 +10,5 @@ public interface IApprovalService
     Task<ServiceResult<ApprovalDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<ServiceResult<ApprovalDto>> CreateAsync(CreateApprovalCommand command, CancellationToken cancellationToken);
     Task<ServiceResult<ApprovalDto>> UpdateAsync(Guid id, UpdateApprovalCommand command, CancellationToken cancellationToken);
+    Task<ServiceResult<ApprovalDto>> DecideAsync(ApprovalDecisionCommand command, string action,CancellationToken cancellationToken);
 }

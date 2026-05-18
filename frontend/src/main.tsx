@@ -6,8 +6,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App.tsx";
 import { initializeMsal, msalInstance } from "./auth/msal";
-import { AuthProvider } from "./auth/AuthContext";
-
+import { AuthProvider } from "./auth/AuthContext.tsx";
 const queryClient = new QueryClient();
 
 void initializeMsal().then(() => {
