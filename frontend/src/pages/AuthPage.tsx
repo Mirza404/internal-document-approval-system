@@ -54,14 +54,30 @@ const getAuthErrorMessage = (error: unknown) => {
   return "Microsoft sign-in failed. Make sure the backend is running and your account is active.";
 };
 
+const AuthLoadingScreen = () => (
+  <main className="grid min-h-screen place-items-center bg-background px-4 text-foreground">
+    <section className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-8 text-center shadow-lg shadow-primary/10">
+      <span
+        aria-hidden="true"
+        className="mx-auto block h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary"
+      />
+      <h1 className="mt-6 text-2xl font-semibold">Signing you in</h1>
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+        We are verifying your Microsoft account and preparing your workspace.
+      </p>
+    </section>
+  </main>
+);
+
 const AuthPage = () => {
-  const { instance, inProgress } = useMsal();
+  const { accounts, instance, inProgress } = useMsal();
   const isMicrosoftAuthenticated = useIsAuthenticated();
   const { isAuthenticated, user, setSession } = useAuth();
   const navigate = useNavigate();
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const isProcessingRef = useRef(false);
+  const failedAccountRef = useRef<string | null>(null);
 
   const copy = useMemo(
     () => ({
@@ -88,7 +104,16 @@ const AuthPage = () => {
       return;
     }
 
+    const accountKey =
+      instance.getActiveAccount()?.homeAccountId ??
+      accounts[0]?.homeAccountId ??
+      "active-account";
+    if (failedAccountRef.current === accountKey) {
+      return;
+    }
+
     isProcessingRef.current = true;
+    failedAccountRef.current = accountKey;
     setStatus("loading");
     setError(null);
 
@@ -108,6 +133,7 @@ const AuthPage = () => {
           role: response.role,
         });
 
+        failedAccountRef.current = null;
         navigate(roleRedirect(response.role), { replace: true });
       } catch (authError: unknown) {
         setError(getAuthErrorMessage(authError));
@@ -118,9 +144,17 @@ const AuthPage = () => {
     };
 
     void finalizeLogin();
-  }, [inProgress, isMicrosoftAuthenticated, navigate, setSession]);
+  }, [
+    accounts,
+    inProgress,
+    instance,
+    isMicrosoftAuthenticated,
+    navigate,
+    setSession,
+  ]);
 
   const handleMicrosoftAuth = () => {
+    failedAccountRef.current = null;
     setStatus("loading");
     setError(null);
     void instance.loginRedirect({
@@ -128,6 +162,15 @@ const AuthPage = () => {
       prompt: "select_account",
     });
   };
+
+  const isAuthenticating =
+    inProgress !== InteractionStatus.None ||
+    status === "loading" ||
+    (isMicrosoftAuthenticated && !error && !isAuthenticated);
+
+  if (isAuthenticating) {
+    return <AuthLoadingScreen />;
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -157,7 +200,7 @@ const AuthPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-                Login
+                Secure access
               </p>
               <h2 className="mt-2 text-2xl font-semibold text-foreground">
                 Sign in
@@ -169,20 +212,10 @@ const AuthPage = () => {
             <button
               type="button"
               onClick={handleMicrosoftAuth}
-              disabled={status === "loading"}
+              disabled={inProgress !== InteractionStatus.None}
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {status === "loading" ? (
-                <>
-                  <span
-                    aria-hidden="true"
-                    className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground"
-                  />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in with Microsoft"
-              )}
+              Sign in with Microsoft
             </button>
           </div>
 
