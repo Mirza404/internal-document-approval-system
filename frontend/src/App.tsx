@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { useMsal } from "@azure/msal-react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -21,14 +21,17 @@ const roleRedirect = (role?: string) => {
 function App() {
   const { isAuthenticated, user, clearSession } = useAuth();
   const { instance } = useMsal();
+  const navigate = useNavigate();
   const defaultRoute =
     isAuthenticated && user ? roleRedirect(user.role) : "/auth";
 
   const handleLogout = () => {
+    const account = instance.getActiveAccount() ?? instance.getAllAccounts()[0];
+
     clearSession();
     sessionStorage.removeItem("authMode");
-    void instance.logoutRedirect({
-      postLogoutRedirectUri: window.location.origin + "/auth",
+    void instance.clearCache({ account }).finally(() => {
+      navigate("/auth", { replace: true });
     });
   };
 
