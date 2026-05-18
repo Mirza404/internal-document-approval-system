@@ -108,68 +108,68 @@ public sealed class ApprovalsController(IApprovalService approvalService) : Cont
     }
 
     [HttpPost("{documentId:guid}/approve")]
-[Authorize(Roles = "Approver,Admin")]
-[ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status400BadRequest)]
-[ProducesResponseType(StatusCodes.Status404NotFound)]
-[ProducesResponseType(StatusCodes.Status409Conflict)]
-public async Task<ActionResult<ApprovalResponse>> Approve(
+    [Authorize(Roles = "Approver,Admin")]
+    [ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<ApprovalResponse>> Approve(
     Guid documentId,
     [FromBody] ApprovalDecisionRequest request,
     CancellationToken cancellationToken)
-{
-    var userId = User.GetUserId();
-    if (userId is null)
     {
-        return Unauthorized();
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var command = new ApprovalDecisionCommand(documentId, userId.Value, request.Comments);
+        var result = await approvalService.DecideAsync(command, "approve", cancellationToken);
+        return ToApprovalResponse(result);
     }
 
-    var command = new ApprovalDecisionCommand(documentId, userId.Value, request.Comments);
-    var result = await approvalService.DecideAsync(command, "approve", cancellationToken);
-    return ToApprovalResponse(result);
-}
-
-[HttpPost("{documentId:guid}/reject")]
-[Authorize(Roles = "Approver,Admin")]
-[ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status400BadRequest)]
-[ProducesResponseType(StatusCodes.Status404NotFound)]
-[ProducesResponseType(StatusCodes.Status409Conflict)]
-public async Task<ActionResult<ApprovalResponse>> Reject(
-    Guid documentId,
-    [FromBody] ApprovalDecisionRequest request,
-    CancellationToken cancellationToken)
-{
-    var userId = User.GetUserId();
-    if (userId is null)
+    [HttpPost("{documentId:guid}/reject")]
+    [Authorize(Roles = "Approver,Admin")]
+    [ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<ApprovalResponse>> Reject(
+        Guid documentId,
+        [FromBody] ApprovalDecisionRequest request,
+        CancellationToken cancellationToken)
     {
-        return Unauthorized();
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        var command = new ApprovalDecisionCommand(documentId, userId.Value, request.Comments);
+        var result = await approvalService.DecideAsync(command, "reject", cancellationToken);
+        return ToApprovalResponse(result);
     }
 
-    var command = new ApprovalDecisionCommand(documentId, userId.Value, request.Comments);
-    var result = await approvalService.DecideAsync(command, "reject", cancellationToken);
-    return ToApprovalResponse(result);
-}
-
-[HttpPost("{documentId:guid}/request-changes")]
-[Authorize(Roles = "Approver,Admin")]
-[ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status400BadRequest)]
-[ProducesResponseType(StatusCodes.Status404NotFound)]
-[ProducesResponseType(StatusCodes.Status409Conflict)]
-public async Task<ActionResult<ApprovalResponse>> RequestChanges(
-    Guid documentId,
-    [FromBody] ApprovalDecisionRequest request,
-    CancellationToken cancellationToken)
-{
-    var userId = User.GetUserId();
-    if (userId is null)
+    [HttpPost("{documentId:guid}/request-changes")]
+    [Authorize(Roles = "Approver,Admin")]
+    [ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<ApprovalResponse>> RequestChanges(
+        Guid documentId,
+        [FromBody] ApprovalDecisionRequest request,
+        CancellationToken cancellationToken)
     {
-        return Unauthorized();
-    }
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
 
-    var command = new ApprovalDecisionCommand(documentId, userId.Value, request.Comments);
-    var result = await approvalService.DecideAsync(command, "request-changes", cancellationToken);
-    return ToApprovalResponse(result);
-}
+        var command = new ApprovalDecisionCommand(documentId, userId.Value, request.Comments);
+        var result = await approvalService.DecideAsync(command, "request-changes", cancellationToken);
+        return ToApprovalResponse(result);
+    }
 }
