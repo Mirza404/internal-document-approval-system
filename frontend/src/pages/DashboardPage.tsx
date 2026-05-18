@@ -141,9 +141,10 @@ const clearDocumentMetadata = (
   attachmentNote: "",
 });
 
-const getDocumentMetadataKind = (
-  documentType?: { categoryName: string; name: string },
-) => {
+const getDocumentMetadataKind = (documentType?: {
+  categoryName: string;
+  name: string;
+}) => {
   const typeName = documentType?.name.trim().toLowerCase();
   const categoryName = documentType?.categoryName.trim().toLowerCase();
 
@@ -151,10 +152,7 @@ const getDocumentMetadataKind = (
     return "payment";
   }
 
-  if (
-    typeName === "internship submission" ||
-    categoryName === "internships"
-  ) {
+  if (typeName === "internship submission" || categoryName === "internships") {
     return "internship";
   }
 
@@ -205,8 +203,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   );
 
   const selectedType = useMemo(
-    () =>
-      documentTypeOptions.find((type) => type.id === form.documentTypeId),
+    () => documentTypeOptions.find((type) => type.id === form.documentTypeId),
     [documentTypeOptions, form.documentTypeId],
   );
 
