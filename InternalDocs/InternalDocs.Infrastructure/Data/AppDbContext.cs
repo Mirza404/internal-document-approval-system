@@ -94,6 +94,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<DocumentVersion>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.MajorVersion).HasDefaultValue(1);
+            entity.Property(e => e.MinorVersion).HasDefaultValue(0);
             entity.Property(e => e.Content).IsRequired();
             entity.Property(e => e.ChangeNotes).HasMaxLength(1000);
 

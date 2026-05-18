@@ -149,6 +149,8 @@ public sealed class DocumentService(
             Id = Guid.NewGuid(),
             DocumentId = document.Id,
             VersionNumber = 1,
+            MajorVersion = 1,
+            MinorVersion = 0,
             Content = CreateVersionSnapshot(document),
             ChangeNotes = "Initial submission",
             CreatedAt = document.CreatedAt
@@ -197,6 +199,9 @@ public sealed class DocumentService(
             }
         }
 
+
+        var titleChanged = command.Title is not null
+            && !string.Equals(document.Title, command.Title.Trim(), StringComparison.Ordinal);
 
         if (command.Title is not null)
         {
@@ -258,19 +263,7 @@ public sealed class DocumentService(
         }
 
         document.UpdatedAt = DateTime.UtcNow;
-
-        if (isResubmission)
-        {
-            document.Versions.Add(new DocumentVersion
-            {
-                Id = Guid.NewGuid(),
-                DocumentId = document.Id,
-                VersionNumber = GetNextVersionNumber(document),
-                Content = CreateVersionSnapshot(document),
-                ChangeNotes = NormalizeOptional(command.ChangeNotes) ?? "Resubmitted after changes requested",
-                CreatedAt = document.UpdatedAt.Value
-            });
-        }
+        AddDocumentVersion(document, titleChanged, isResubmission, command.ChangeNotes);
 
         await documents.SaveChangesAsync(cancellationToken);
         return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
@@ -355,13 +348,43 @@ public sealed class DocumentService(
 
     private static string? ValidateDocumentMetadata(Document document, DocumentType documentType)
     {
-        return documentType.Category.Name.Trim().ToUpperInvariant() switch
+        return GetDocumentMetadataKind(documentType) switch
         {
-            "HR" => ValidateHrDocument(document),
-            "FINANCE" => ValidateFinanceDocument(document),
-            "CONTRACT" => ValidateContractDocument(document),
-            "GENERIC" => null,
+            DocumentMetadataKind.Leave => ValidateHrDocument(document),
+            DocumentMetadataKind.Payment => ValidatePaymentDocument(document),
+            DocumentMetadataKind.Internship => ValidateInternshipDocument(document),
+            DocumentMetadataKind.None => null,
             _ => $"Document type category '{documentType.Category.Name}' is not supported."
+        };
+    }
+
+    private static DocumentMetadataKind GetDocumentMetadataKind(DocumentType documentType)
+    {
+        var typeName = NormalizeCatalogName(documentType.Name);
+        if (typeName is "TRANSCRIPT" or "CERTIFICATE")
+        {
+            return DocumentMetadataKind.None;
+        }
+
+        if (typeName == "INTERNSHIP SUBMISSION")
+        {
+            return DocumentMetadataKind.Internship;
+        }
+
+        if (typeName == "PAYMENT PROCEDURE")
+        {
+            return DocumentMetadataKind.Payment;
+        }
+
+        return NormalizeCatalogName(documentType.Category.Name) switch
+        {
+            "HR" => DocumentMetadataKind.Leave,
+            "FINANCE" => DocumentMetadataKind.Payment,
+            "CONTRACT" => DocumentMetadataKind.Internship,
+            "GENERIC" or "ACADEMIC RECORDS" or "STUDENT SERVICES" => DocumentMetadataKind.None,
+            "INTERNSHIPS" => DocumentMetadataKind.Internship,
+            "PAYMENTS" => DocumentMetadataKind.Payment,
+            _ => DocumentMetadataKind.Unsupported
         };
     }
 
@@ -385,30 +408,35 @@ public sealed class DocumentService(
         return null;
     }
 
-    private static string? ValidateFinanceDocument(Document document)
+    private static string? ValidatePaymentDocument(Document document)
     {
         if (!document.Amount.HasValue || document.Amount.Value <= 0)
         {
-            return "Finance documents require Amount greater than 0.";
+            return "Payment Procedure documents require Amount greater than 0.";
         }
 
         if (string.IsNullOrWhiteSpace(document.BudgetCode))
         {
-            return "Finance documents require BudgetCode.";
+            return "Payment Procedure documents require BudgetCode.";
         }
 
         return null;
     }
 
-    private static string? ValidateContractDocument(Document document)
+    private static string? ValidateInternshipDocument(Document document)
     {
         if (string.IsNullOrWhiteSpace(document.Counterparty)
             && string.IsNullOrWhiteSpace(document.AttachmentNote))
         {
-            return "Contract documents require Counterparty or AttachmentNote.";
+            return "Internship Submission documents require Counterparty or AttachmentNote.";
         }
 
         return null;
+    }
+
+    private static string NormalizeCatalogName(string value)
+    {
+        return value.Trim().ToUpperInvariant();
     }
 
     private static string? NormalizeOptional(string? value)
@@ -416,11 +444,61 @@ public sealed class DocumentService(
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    private static int GetNextVersionNumber(Document document)
+    private static void AddDocumentVersion(
+        Document document,
+        bool titleChanged,
+        bool isResubmission,
+        string? changeNotes)
     {
-        return document.Versions.Count == 0
-            ? 1
-            : document.Versions.Max(version => version.VersionNumber) + 1;
+        var latestVersion = document.Versions
+            .OrderByDescending(version => version.VersionNumber)
+            .FirstOrDefault();
+
+        var nextVersionNumber = (latestVersion?.VersionNumber ?? 0) + 1;
+        var nextMajorVersion = latestVersion?.MajorVersion ?? 1;
+        var nextMinorVersion = latestVersion?.MinorVersion ?? -1;
+
+        if (latestVersion is null)
+        {
+            nextMinorVersion = 0;
+        }
+        else if (titleChanged)
+        {
+            nextMajorVersion++;
+            nextMinorVersion = 0;
+        }
+        else
+        {
+            nextMinorVersion++;
+        }
+
+        document.Versions.Add(new DocumentVersion
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = document.Id,
+            VersionNumber = nextVersionNumber,
+            MajorVersion = nextMajorVersion,
+            MinorVersion = nextMinorVersion,
+            Content = CreateVersionSnapshot(document),
+            ChangeNotes = GetVersionChangeNotes(titleChanged, isResubmission, changeNotes),
+            CreatedAt = document.UpdatedAt ?? DateTime.UtcNow
+        });
+    }
+
+    private static string GetVersionChangeNotes(bool titleChanged, bool isResubmission, string? changeNotes)
+    {
+        var normalizedChangeNotes = NormalizeOptional(changeNotes);
+        if (normalizedChangeNotes is not null)
+        {
+            return normalizedChangeNotes;
+        }
+
+        if (isResubmission)
+        {
+            return "Resubmitted after changes requested";
+        }
+
+        return titleChanged ? "Title changed" : "Document updated";
     }
 
     private static string CreateVersionSnapshot(Document document)
@@ -442,5 +520,14 @@ public sealed class DocumentService(
             document.AttachmentNote,
             document.CreatedAt
         });
+    }
+
+    private enum DocumentMetadataKind
+    {
+        None,
+        Leave,
+        Payment,
+        Internship,
+        Unsupported
     }
 }

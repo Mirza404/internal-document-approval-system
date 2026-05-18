@@ -11,29 +11,69 @@ public static class DatabaseSeeder
         new()
         {
             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-            Name = "HR",
-            Description = "People operations, onboarding, leave, and employment documents.",
+            Name = "Academic Records",
+            Description = "Official student record requests, including transcript processing.",
             CreatedAt = new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc)
         },
         new()
         {
             Id = new Guid("22222222-2222-2222-2222-222222222222"),
-            Name = "Finance",
-            Description = "Budgets, invoices, reimbursements, procurement, and financial approvals.",
+            Name = "Student Services",
+            Description = "Student certificate and administrative service requests.",
             CreatedAt = new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc)
         },
         new()
         {
             Id = new Guid("33333333-3333-3333-3333-333333333333"),
-            Name = "Contract",
-            Description = "Vendor, partner, service, and legal agreement documents.",
+            Name = "Internships",
+            Description = "Internship submissions, placements, and supporting documents.",
             CreatedAt = new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc)
         },
         new()
         {
             Id = new Guid("44444444-4444-4444-4444-444444444444"),
-            Name = "Generic",
-            Description = "General internal documents that do not need a specialized category.",
+            Name = "Payments",
+            Description = "Student payment procedure and finance office requests.",
+            CreatedAt = new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc)
+        }
+    ];
+
+    private static readonly DocumentType[] SeedDocumentTypes =
+    [
+        new()
+        {
+            Id = new Guid("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            Name = "Transcript",
+            Description = "Official academic transcript request.",
+            CategoryId = new Guid("11111111-1111-1111-1111-111111111111"),
+            RequiresApproval = true,
+            CreatedAt = new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc)
+        },
+        new()
+        {
+            Id = new Guid("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            Name = "Certificate",
+            Description = "Enrollment, status, and other student certificate requests.",
+            CategoryId = new Guid("22222222-2222-2222-2222-222222222222"),
+            RequiresApproval = true,
+            CreatedAt = new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc)
+        },
+        new()
+        {
+            Id = new Guid("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+            Name = "Internship Submission",
+            Description = "Internship approval and supporting document submission.",
+            CategoryId = new Guid("33333333-3333-3333-3333-333333333333"),
+            RequiresApproval = true,
+            CreatedAt = new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc)
+        },
+        new()
+        {
+            Id = new Guid("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
+            Name = "Payment Procedure",
+            Description = "Payment procedure request requiring amount and student finance reference.",
+            CategoryId = new Guid("44444444-4444-4444-4444-444444444444"),
+            RequiresApproval = true,
             CreatedAt = new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc)
         }
     ];
@@ -67,14 +107,50 @@ public static class DatabaseSeeder
 
     public static async Task SeedDocumentCategoriesAsync(AppDbContext context)
     {
-        foreach (var category in SeedCategories)
+        foreach (var seedCategory in SeedCategories)
         {
-            if (context.DocumentCategories.Any(x => x.Id == category.Id || x.Name == category.Name))
+            var category = context.DocumentCategories.FirstOrDefault(x => x.Id == seedCategory.Id);
+            if (category is null)
             {
+                if (context.DocumentCategories.Any(x => x.Name == seedCategory.Name))
+                {
+                    continue;
+                }
+
+                context.DocumentCategories.Add(seedCategory);
                 continue;
             }
 
-            context.DocumentCategories.Add(category);
+            category.Name = seedCategory.Name;
+            category.Description = seedCategory.Description;
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    public static async Task SeedDocumentTypesAsync(AppDbContext context)
+    {
+        await SeedDocumentCategoriesAsync(context);
+
+        foreach (var seedDocumentType in SeedDocumentTypes)
+        {
+            var documentType = context.DocumentTypes.FirstOrDefault(x => x.Id == seedDocumentType.Id);
+            if (documentType is null)
+            {
+                if (context.DocumentTypes.Any(x =>
+                        x.Name == seedDocumentType.Name && x.CategoryId == seedDocumentType.CategoryId))
+                {
+                    continue;
+                }
+
+                context.DocumentTypes.Add(seedDocumentType);
+                continue;
+            }
+
+            documentType.Name = seedDocumentType.Name;
+            documentType.Description = seedDocumentType.Description;
+            documentType.CategoryId = seedDocumentType.CategoryId;
+            documentType.RequiresApproval = seedDocumentType.RequiresApproval;
         }
 
         await context.SaveChangesAsync();

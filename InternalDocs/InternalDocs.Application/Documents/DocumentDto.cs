@@ -23,6 +23,9 @@ public sealed record DocumentDto(
     DateTime? UpdatedAt,
     DateTime? ApprovedAt,
     int? LatestVersionNumber,
+    int? LatestMajorVersion,
+    int? LatestMinorVersion,
+    string? LatestVersionLabel,
     DateTime? LatestVersionCreatedAt,
     string? LatestVersionChangeNotes)
 {
@@ -53,6 +56,9 @@ public sealed record DocumentDto(
             document.UpdatedAt,
             document.ApprovedAt,
             latestVersion?.VersionNumber,
+            latestVersion?.MajorVersion,
+            latestVersion?.MinorVersion,
+            latestVersion is null ? null : $"v{latestVersion.MajorVersion}.{latestVersion.MinorVersion}",
             latestVersion?.CreatedAt,
             latestVersion?.ChangeNotes);
     }

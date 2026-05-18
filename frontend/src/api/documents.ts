@@ -21,6 +21,9 @@ export interface Document {
   updatedAt?: string | null;
   approvedAt?: string | null;
   latestVersionNumber?: number | null;
+  latestMajorVersion?: number | null;
+  latestMinorVersion?: number | null;
+  latestVersionLabel?: string | null;
   latestVersionCreatedAt?: string | null;
   latestVersionChangeNotes?: string | null;
 }
