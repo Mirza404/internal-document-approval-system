@@ -188,30 +188,34 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const documentsQuery = useDocuments();
   const createDocument = useCreateDocument();
   const updateDocument = useUpdateDocument();
+  const documentTypeOptions = useMemo(
+    () => documentTypesQuery.data ?? [],
+    [documentTypesQuery.data],
+  );
 
   const documentTypeLabels = useMemo(
     () =>
       new Map(
-        (documentTypesQuery.data ?? []).map((type) => [
+        documentTypeOptions.map((type) => [
           type.id,
           [type.categoryName, type.name].filter(Boolean).join(" · "),
         ]),
       ),
-    [documentTypesQuery.data],
+    [documentTypeOptions],
   );
 
   const selectedType = useMemo(
     () =>
-      documentTypesQuery.data?.find((type) => type.id === form.documentTypeId),
-    [documentTypesQuery.data, form.documentTypeId],
+      documentTypeOptions.find((type) => type.id === form.documentTypeId),
+    [documentTypeOptions, form.documentTypeId],
   );
 
   const resubmitType = useMemo(
     () =>
-      documentTypesQuery.data?.find(
+      documentTypeOptions.find(
         (type) => type.id === resubmitForm?.documentTypeId,
       ),
-    [documentTypesQuery.data, resubmitForm?.documentTypeId],
+    [documentTypeOptions, resubmitForm?.documentTypeId],
   );
 
   const myDocuments = useMemo(
@@ -573,10 +577,9 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                               event.target.value,
                             )
                           }
-                          disabled={documentTypesQuery.isLoading}
                         >
                           <option value="">Select type</option>
-                          {(documentTypesQuery.data ?? []).map((type) => (
+                          {documentTypeOptions.map((type) => (
                             <option key={type.id} value={type.id}>
                               {type.categoryName} · {type.name}
                             </option>
@@ -711,10 +714,9 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                     onChange={(event) =>
                       updateField("documentTypeId", event.target.value)
                     }
-                    disabled={documentTypesQuery.isLoading}
                   >
                     <option value="">Select type</option>
-                    {(documentTypesQuery.data ?? []).map((type) => (
+                    {documentTypeOptions.map((type) => (
                       <option key={type.id} value={type.id}>
                         {type.categoryName} · {type.name}
                       </option>
@@ -722,7 +724,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   </select>
                   {documentTypesQuery.isError && (
                     <span className="block text-xs font-medium text-destructive">
-                      Could not load document types.
+                      Showing default document types while catalog reloads.
                     </span>
                   )}
                 </label>
