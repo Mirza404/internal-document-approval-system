@@ -11,6 +11,7 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
     {
         return dbContext.Documents
             .AsNoTracking()
+            .Include(x => x.Versions)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -18,6 +19,7 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
     public Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.Documents
+            .Include(x => x.Versions)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
