@@ -21,6 +21,12 @@ public sealed class DocumentResponse
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public DateTime? ApprovedAt { get; init; }
+    public int? LatestVersionNumber { get; init; }
+    public int? LatestMajorVersion { get; init; }
+    public int? LatestMinorVersion { get; init; }
+    public string? LatestVersionLabel { get; init; }
+    public DateTime? LatestVersionCreatedAt { get; init; }
+    public string? LatestVersionChangeNotes { get; init; }
 
     public static DocumentResponse FromDto(DocumentDto document)
     {
@@ -42,7 +48,13 @@ public sealed class DocumentResponse
             AttachmentNote = document.AttachmentNote,
             CreatedAt = document.CreatedAt,
             UpdatedAt = document.UpdatedAt,
-            ApprovedAt = document.ApprovedAt
+            ApprovedAt = document.ApprovedAt,
+            LatestVersionNumber = document.LatestVersionNumber,
+            LatestMajorVersion = document.LatestMajorVersion,
+            LatestMinorVersion = document.LatestMinorVersion,
+            LatestVersionLabel = document.LatestVersionLabel,
+            LatestVersionCreatedAt = document.LatestVersionCreatedAt,
+            LatestVersionChangeNotes = document.LatestVersionChangeNotes
         };
     }
 }

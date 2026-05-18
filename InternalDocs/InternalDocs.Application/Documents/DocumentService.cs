@@ -132,6 +132,8 @@ public sealed class DocumentService(
             Id = Guid.NewGuid(),
             DocumentId = document.Id,
             VersionNumber = 1,
+            MajorVersion = 1,
+            MinorVersion = 0,
             Content = CreateVersionSnapshot(document),
             ChangeNotes = "Initial submission",
             CreatedAt = document.CreatedAt
@@ -179,6 +181,9 @@ public sealed class DocumentService(
             }
         }
 
+
+        var titleChanged = command.Title is not null
+            && !string.Equals(document.Title, command.Title.Trim(), StringComparison.Ordinal);
 
         if (command.Title is not null)
         {
@@ -229,6 +234,7 @@ public sealed class DocumentService(
         }
 
         document.UpdatedAt = DateTime.UtcNow;
+        AddDocumentVersion(document, titleChanged);
 
         await documents.SaveChangesAsync(cancellationToken);
         return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
@@ -407,6 +413,43 @@ public sealed class DocumentService(
     private static string? NormalizeOptional(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    private static void AddDocumentVersion(Document document, bool titleChanged)
+    {
+        var latestVersion = document.Versions
+            .OrderByDescending(x => x.VersionNumber)
+            .FirstOrDefault();
+
+        var nextVersionNumber = (latestVersion?.VersionNumber ?? 0) + 1;
+        var nextMajorVersion = latestVersion?.MajorVersion ?? 1;
+        var nextMinorVersion = latestVersion?.MinorVersion ?? -1;
+
+        if (latestVersion is null)
+        {
+            nextMinorVersion = 0;
+        }
+        else if (titleChanged)
+        {
+            nextMajorVersion++;
+            nextMinorVersion = 0;
+        }
+        else
+        {
+            nextMinorVersion++;
+        }
+
+        document.Versions.Add(new DocumentVersion
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = document.Id,
+            VersionNumber = nextVersionNumber,
+            MajorVersion = nextMajorVersion,
+            MinorVersion = nextMinorVersion,
+            Content = CreateVersionSnapshot(document),
+            ChangeNotes = titleChanged ? "Title changed" : "Document updated",
+            CreatedAt = document.UpdatedAt ?? DateTime.UtcNow
+        });
     }
 
     private static string CreateVersionSnapshot(Document document)

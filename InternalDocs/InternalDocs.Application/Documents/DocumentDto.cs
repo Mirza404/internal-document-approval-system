@@ -19,10 +19,20 @@ public sealed record DocumentDto(
     string? AttachmentNote,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    DateTime? ApprovedAt)
+    DateTime? ApprovedAt,
+    int? LatestVersionNumber,
+    int? LatestMajorVersion,
+    int? LatestMinorVersion,
+    string? LatestVersionLabel,
+    DateTime? LatestVersionCreatedAt,
+    string? LatestVersionChangeNotes)
 {
     public static DocumentDto FromEntity(Document document)
     {
+        var latestVersion = document.Versions
+            .OrderByDescending(x => x.VersionNumber)
+            .FirstOrDefault();
+
         return new DocumentDto(
             document.Id,
             document.Title,
@@ -40,6 +50,12 @@ public sealed record DocumentDto(
             document.AttachmentNote,
             document.CreatedAt,
             document.UpdatedAt,
-            document.ApprovedAt);
+            document.ApprovedAt,
+            latestVersion?.VersionNumber,
+            latestVersion?.MajorVersion,
+            latestVersion?.MinorVersion,
+            latestVersion is null ? null : $"v{latestVersion.MajorVersion}.{latestVersion.MinorVersion}",
+            latestVersion?.CreatedAt,
+            latestVersion?.ChangeNotes);
     }
 }
