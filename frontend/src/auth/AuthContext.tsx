@@ -1,16 +1,19 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   clearAuthSession,
-  loadAuthToken,
-  loadAuthUser,
+  loadAuthSession,
   saveAuthSession,
   type AuthUser,
 } from "./authStorage";
 import { AuthContext } from "./authContext";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [token, setToken] = useState<string | null>(() => loadAuthToken());
-  const [user, setUser] = useState<AuthUser | null>(() => loadAuthUser());
+  const [token, setToken] = useState<string | null>(
+    () => loadAuthSession()?.token ?? null,
+  );
+  const [user, setUser] = useState<AuthUser | null>(
+    () => loadAuthSession()?.user ?? null,
+  );
 
   const setSession = useCallback((nextToken: string, nextUser: AuthUser) => {
     setToken(nextToken);
