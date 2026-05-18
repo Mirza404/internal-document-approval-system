@@ -13,6 +13,7 @@ public sealed class ApplicationServiceTests
     private static readonly Guid TranscriptDocumentTypeId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid CertificateDocumentTypeId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     private static readonly Guid InternshipDocumentTypeId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+    private static readonly Guid GenericDocumentTypeId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
     private static readonly Guid PaymentDocumentTypeId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
 
     [Fact]
@@ -205,6 +206,91 @@ public sealed class ApplicationServiceTests
     }
 
     [Fact]
+    public async Task UpdateDocumentAsync_ResubmitRequiresChangesRequestedStatus()
+    {
+        var documentId = Guid.NewGuid();
+        var documentRepository = new FakeDocumentRepository
+        {
+            Document = new Document
+            {
+                Id = documentId,
+                Title = "Existing document",
+                Description = "Description",
+                DocumentTypeId = GenericDocumentTypeId,
+                CreatedByUserId = UserId,
+                Status = "PendingApproval"
+            }
+        };
+        var service = new DocumentService(
+            documentRepository,
+            new FakeDocumentTypeRepository(CreateDocumentType(GenericDocumentTypeId, "Generic", "Generic")),
+            new FakeUserRepository());
+
+        var result = await service.UpdateAsync(
+            documentId,
+            UpdateCommand(status: "PendingApproval"),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        Assert.Equal("Documents can only be resubmitted when changes are requested.", result.Error);
+        Assert.Empty(documentRepository.Document.Versions);
+    }
+
+    [Fact]
+    public async Task UpdateDocumentAsync_ResubmitCreatesNewVersionAndSetsPendingApproval()
+    {
+        var documentId = Guid.NewGuid();
+        var documentRepository = new FakeDocumentRepository
+        {
+            Document = new Document
+            {
+                Id = documentId,
+                Title = "Existing document",
+                Description = "Description",
+                DocumentTypeId = GenericDocumentTypeId,
+                CreatedByUserId = UserId,
+                Status = "ChangesRequested",
+                Versions =
+                [
+                    new DocumentVersion
+                    {
+                        Id = Guid.NewGuid(),
+                        DocumentId = documentId,
+                        VersionNumber = 1,
+                        Content = "original",
+                        ChangeNotes = "Initial submission",
+                        CreatedAt = DateTime.UtcNow.AddDays(-1)
+                    }
+                ]
+            }
+        };
+        var service = new DocumentService(
+            documentRepository,
+            new FakeDocumentTypeRepository(CreateDocumentType(GenericDocumentTypeId, "Generic", "Generic")),
+            new FakeUserRepository());
+
+        var result = await service.UpdateAsync(
+            documentId,
+            UpdateCommand(
+                title: "Updated document",
+                description: "Updated description",
+                status: "PendingApproval",
+                changeNotes: "Fixed requested changes"),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("PendingApproval", documentRepository.Document.Status);
+        Assert.Equal("Updated document", documentRepository.Document.Title);
+        Assert.Equal(2, documentRepository.Document.Versions.Count);
+
+        var version = documentRepository.Document.Versions.OrderBy(x => x.VersionNumber).Last();
+        Assert.Equal(2, version.VersionNumber);
+        Assert.Contains("\"Title\":\"Updated document\"", version.Content);
+        Assert.Equal("Fixed requested changes", version.ChangeNotes);
+    }
+
+    [Fact]
     public async Task UpdateApprovalAsync_RejectsInvalidStatus()
     {
         var approvalId = Guid.NewGuid();
@@ -244,9 +330,20 @@ public sealed class ApplicationServiceTests
             return Task.FromResult(Document is null ? [] : new List<Document> { Document });
         }
 
+        public Task<List<Document>> GetByCreatedByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                Document?.CreatedByUserId == userId ? new List<Document> { Document } : []);
+        }
+
         public Task<Document?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             return Task.FromResult(Document?.Id == id ? Document : null);
+        }
+
+        public Task<Document?> GetByIdAndCreatedByUserIdAsync(Guid id, Guid userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Document?.Id == id && Document.CreatedByUserId == userId ? Document : null);
         }
 
         public void Add(Document document)
@@ -262,6 +359,8 @@ public sealed class ApplicationServiceTests
         {
             return Task.CompletedTask;
         }
+
+        public Task<List<Document>> GetPendingApprovalQueueAsync(CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 
     private sealed class FakeApprovalActionRepository : IApprovalActionRepository
@@ -481,7 +580,8 @@ public sealed class ApplicationServiceTests
         decimal? amount = null,
         string? budgetCode = null,
         string? counterparty = null,
-        string? attachmentNote = null)
+        string? attachmentNote = null,
+        string? changeNotes = null)
     {
         return new UpdateDocumentCommand(
             userId ?? UserId,
@@ -497,6 +597,7 @@ public sealed class ApplicationServiceTests
             amount,
             budgetCode,
             counterparty,
-            attachmentNote);
+            attachmentNote,
+            changeNotes);
     }
 }

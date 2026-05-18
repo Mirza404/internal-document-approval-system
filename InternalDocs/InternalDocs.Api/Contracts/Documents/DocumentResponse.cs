@@ -8,6 +8,8 @@ public sealed class DocumentResponse
     public string Title { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public Guid DocumentTypeId { get; init; }
+    public string DocumentTypeName { get; init; } = string.Empty;
+    public string DocumentCategoryName { get; init; } = string.Empty;
     public Guid CreatedByUserId { get; init; }
     public string Status { get; init; } = string.Empty;
     public string Priority { get; init; } = string.Empty;
@@ -36,6 +38,8 @@ public sealed class DocumentResponse
             Title = document.Title,
             Description = document.Description,
             DocumentTypeId = document.DocumentTypeId,
+            DocumentTypeName = document.DocumentTypeName,
+            DocumentCategoryName = document.DocumentCategoryName,
             CreatedByUserId = document.CreatedByUserId,
             Status = document.Status,
             Priority = document.Priority,

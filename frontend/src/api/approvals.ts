@@ -15,6 +15,17 @@ export interface CreateApprovalRequest {
   comments?: string;
 }
 
+export interface PendingApprovalItem {
+  documentId: string;
+  title: string;
+  documentTypeId: string;
+  documentTypeName: string;
+  creatorId: string;
+  creatorFullName: string;
+  createdAt: string;
+  status: string;
+}
+
 // API functions
 export const getApprovals = (): Promise<Approval[]> =>
   apiClient.get("/approvals");
@@ -30,3 +41,6 @@ export const updateApproval = (
   id: string,
   data: Partial<Approval>,
 ): Promise<Approval> => apiClient.put(`/approvals/${id}`, data);
+
+export const getPendingApprovals = (): Promise<PendingApprovalItem[]> =>
+  apiClient.get("/approvals/pending");

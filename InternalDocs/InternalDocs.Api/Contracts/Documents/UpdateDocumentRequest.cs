@@ -15,4 +15,5 @@ public sealed class UpdateDocumentRequest
     public string? BudgetCode { get; set; }
     public string? Counterparty { get; set; }
     public string? AttachmentNote { get; set; }
+    public string? ChangeNotes { get; set; }
 }

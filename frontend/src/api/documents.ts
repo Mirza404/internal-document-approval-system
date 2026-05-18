@@ -5,6 +5,8 @@ export interface Document {
   title: string;
   description: string;
   documentTypeId: string;
+  documentTypeName: string;
+  documentCategoryName: string;
   createdByUserId: string;
   status: string;
   priority: string;
@@ -54,14 +56,21 @@ export interface UpdateDocumentRequest {
   budgetCode?: string | null;
   counterparty?: string | null;
   attachmentNote?: string | null;
+  changeNotes?: string | null;
 }
 
 // API functions
 export const getDocuments = (): Promise<Document[]> =>
   apiClient.get("/documents");
 
+export const getMyDocuments = (): Promise<Document[]> =>
+  apiClient.get("/documents/my");
+
 export const getDocument = (id: string): Promise<Document> =>
   apiClient.get(`/documents/${id}`);
+
+export const getMyDocument = (id: string): Promise<Document> =>
+  apiClient.get(`/documents/my/${id}`);
 
 export const createDocument = (
   data: CreateDocumentRequest,

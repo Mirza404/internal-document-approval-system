@@ -7,6 +7,8 @@ public sealed record DocumentDto(
     string Title,
     string Description,
     Guid DocumentTypeId,
+    string DocumentTypeName,
+    string DocumentCategoryName,
     Guid CreatedByUserId,
     string Status,
     string Priority,
@@ -30,7 +32,7 @@ public sealed record DocumentDto(
     public static DocumentDto FromEntity(Document document)
     {
         var latestVersion = document.Versions
-            .OrderByDescending(x => x.VersionNumber)
+            .OrderByDescending(version => version.VersionNumber)
             .FirstOrDefault();
 
         return new DocumentDto(
@@ -38,6 +40,8 @@ public sealed record DocumentDto(
             document.Title,
             document.Description,
             document.DocumentTypeId,
+            document.DocumentType?.Name ?? string.Empty,
+            document.DocumentType?.Category?.Name ?? string.Empty,
             document.CreatedByUserId,
             document.Status,
             document.Priority,

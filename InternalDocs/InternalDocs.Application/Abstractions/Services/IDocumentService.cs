@@ -6,7 +6,9 @@ namespace InternalDocs.Application.Abstractions.Services;
 public interface IDocumentService
 {
     Task<IReadOnlyList<DocumentDto>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<DocumentDto>> GetByCreatedByUserIdAsync(Guid userId, CancellationToken cancellationToken);
     Task<ServiceResult<DocumentDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<ServiceResult<DocumentDto>> GetByIdForUserAsync(Guid id, Guid userId, CancellationToken cancellationToken);
     Task<ServiceResult<DocumentDto>> CreateAsync(CreateDocumentCommand command, CancellationToken cancellationToken);
     Task<ServiceResult<DocumentDto>> SubmitAsync(SubmitDocumentCommand command, CancellationToken cancellationToken);
     Task<ServiceResult<DocumentDto>> UpdateAsync(Guid id, UpdateDocumentCommand command, CancellationToken cancellationToken);

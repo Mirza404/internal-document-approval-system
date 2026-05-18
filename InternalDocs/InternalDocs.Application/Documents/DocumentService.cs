@@ -36,9 +36,26 @@ public sealed class DocumentService(
         return result.Select(DocumentDto.FromEntity).ToList();
     }
 
+    public async Task<IReadOnlyList<DocumentDto>> GetByCreatedByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var result = await documents.GetByCreatedByUserIdAsync(userId, cancellationToken);
+        return result.Select(DocumentDto.FromEntity).ToList();
+    }
+
     public async Task<ServiceResult<DocumentDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var document = await documents.GetByIdAsync(id, cancellationToken);
+        return document is null
+            ? ServiceResult<DocumentDto>.Failure("Document was not found.", ServiceErrorType.NotFound)
+            : ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
+    }
+
+    public async Task<ServiceResult<DocumentDto>> GetByIdForUserAsync(
+        Guid id,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var document = await documents.GetByIdAndCreatedByUserIdAsync(id, userId, cancellationToken);
         return document is null
             ? ServiceResult<DocumentDto>.Failure("Document was not found.", ServiceErrorType.NotFound)
             : ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
@@ -161,6 +178,7 @@ public sealed class DocumentService(
             return Validation("You can only update your own documents.");
         }
 
+        var isResubmission = false;
         DocumentType? documentType = null;
         if (command.DocumentTypeId.HasValue)
         {
@@ -207,6 +225,17 @@ public sealed class DocumentService(
                 return Validation("Status must be Draft, InReview, PendingApproval, UnderReview, ChangesRequested, Approved, or Rejected.");
             }
 
+            if (status != "PendingApproval")
+            {
+                return Validation("Employees can only resubmit documents to PendingApproval.");
+            }
+
+            if (!string.Equals(document.Status, "ChangesRequested", StringComparison.OrdinalIgnoreCase))
+            {
+                return Validation("Documents can only be resubmitted when changes are requested.");
+            }
+
+            isResubmission = true;
             document.Status = status;
         }
 
@@ -234,7 +263,7 @@ public sealed class DocumentService(
         }
 
         document.UpdatedAt = DateTime.UtcNow;
-        AddDocumentVersion(document, titleChanged);
+        AddDocumentVersion(document, titleChanged, isResubmission, command.ChangeNotes);
 
         await documents.SaveChangesAsync(cancellationToken);
         return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
@@ -415,10 +444,14 @@ public sealed class DocumentService(
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    private static void AddDocumentVersion(Document document, bool titleChanged)
+    private static void AddDocumentVersion(
+        Document document,
+        bool titleChanged,
+        bool isResubmission,
+        string? changeNotes)
     {
         var latestVersion = document.Versions
-            .OrderByDescending(x => x.VersionNumber)
+            .OrderByDescending(version => version.VersionNumber)
             .FirstOrDefault();
 
         var nextVersionNumber = (latestVersion?.VersionNumber ?? 0) + 1;
@@ -447,9 +480,25 @@ public sealed class DocumentService(
             MajorVersion = nextMajorVersion,
             MinorVersion = nextMinorVersion,
             Content = CreateVersionSnapshot(document),
-            ChangeNotes = titleChanged ? "Title changed" : "Document updated",
+            ChangeNotes = GetVersionChangeNotes(titleChanged, isResubmission, changeNotes),
             CreatedAt = document.UpdatedAt ?? DateTime.UtcNow
         });
+    }
+
+    private static string GetVersionChangeNotes(bool titleChanged, bool isResubmission, string? changeNotes)
+    {
+        var normalizedChangeNotes = NormalizeOptional(changeNotes);
+        if (normalizedChangeNotes is not null)
+        {
+            return normalizedChangeNotes;
+        }
+
+        if (isResubmission)
+        {
+            return "Resubmitted after changes requested";
+        }
+
+        return titleChanged ? "Title changed" : "Document updated";
     }
 
     private static string CreateVersionSnapshot(Document document)

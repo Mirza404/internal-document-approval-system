@@ -21,6 +21,16 @@ public sealed class ApprovalsController(IApprovalService approvalService) : Cont
         return Ok(approvals.Select(ApprovalResponse.FromDto).ToList());
     }
 
+    [HttpGet("pending")]
+    [Authorize(Roles = "Approver,Admin")]
+    [ProducesResponseType(typeof(List<PendingApprovalResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<PendingApprovalResponse>>> GetPendingQueue(
+        CancellationToken cancellationToken)
+    {
+        var pending = await approvalService.GetPendingQueueAsync(cancellationToken);
+        return Ok(pending.Select(PendingApprovalResponse.FromDto).ToList());
+    }
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApprovalResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
