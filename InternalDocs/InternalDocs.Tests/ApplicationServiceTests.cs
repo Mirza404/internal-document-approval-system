@@ -85,6 +85,8 @@ public sealed class ApplicationServiceTests
         Assert.Equal("PendingApproval", documentRepository.Document.Status);
         var version = Assert.Single(documentRepository.Document.Versions);
         Assert.Equal(1, version.VersionNumber);
+        Assert.Equal(1, version.MajorVersion);
+        Assert.Equal(0, version.MinorVersion);
         Assert.Contains("\"Title\":\"Transcript request\"", version.Content);
         Assert.Equal("Initial submission", version.ChangeNotes);
     }
@@ -108,8 +110,66 @@ public sealed class ApplicationServiceTests
         Assert.Equal("PendingApproval", documentRepository.Document.Status);
         var version = Assert.Single(documentRepository.Document.Versions);
         Assert.Equal(1, version.VersionNumber);
+        Assert.Equal(1, version.MajorVersion);
+        Assert.Equal(0, version.MinorVersion);
         Assert.Contains("\"Title\":\"Certificate request\"", version.Content);
         Assert.Equal("Initial submission", version.ChangeNotes);
+    }
+
+    [Fact]
+    public async Task UpdateDocumentAsync_NonTitleEditIncrementsMinorVersion()
+    {
+        var documentId = Guid.NewGuid();
+        var documentRepository = new FakeDocumentRepository
+        {
+            Document = CreateDocumentWithVersion(documentId, "Transcript request")
+        };
+        var service = new DocumentService(
+            documentRepository,
+            new FakeDocumentTypeRepository(CreateDocumentType(TranscriptDocumentTypeId, "Transcript", "Academic Records")),
+            new FakeUserRepository());
+
+        var result = await service.UpdateAsync(
+            documentId,
+            UpdateCommand(description: "Updated description"),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, documentRepository.Document.Versions.Count);
+        var version = documentRepository.Document.Versions.OrderBy(x => x.VersionNumber).Last();
+        Assert.Equal(2, version.VersionNumber);
+        Assert.Equal(1, version.MajorVersion);
+        Assert.Equal(1, version.MinorVersion);
+        Assert.Equal("Document updated", version.ChangeNotes);
+        Assert.Equal("v1.1", result.Value?.LatestVersionLabel);
+    }
+
+    [Fact]
+    public async Task UpdateDocumentAsync_TitleEditIncrementsMajorVersionAndResetsMinorVersion()
+    {
+        var documentId = Guid.NewGuid();
+        var documentRepository = new FakeDocumentRepository
+        {
+            Document = CreateDocumentWithVersion(documentId, "Transcript request", minorVersion: 2)
+        };
+        var service = new DocumentService(
+            documentRepository,
+            new FakeDocumentTypeRepository(CreateDocumentType(TranscriptDocumentTypeId, "Transcript", "Academic Records")),
+            new FakeUserRepository());
+
+        var result = await service.UpdateAsync(
+            documentId,
+            UpdateCommand(title: "Official transcript request"),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, documentRepository.Document.Versions.Count);
+        var version = documentRepository.Document.Versions.OrderBy(x => x.VersionNumber).Last();
+        Assert.Equal(2, version.VersionNumber);
+        Assert.Equal(2, version.MajorVersion);
+        Assert.Equal(0, version.MinorVersion);
+        Assert.Equal("Title changed", version.ChangeNotes);
+        Assert.Equal("v2.0", result.Value?.LatestVersionLabel);
     }
 
     [Fact]
@@ -342,6 +402,40 @@ public sealed class ApplicationServiceTests
             CategoryId = category.Id,
             Category = category
         };
+    }
+
+    private static Document CreateDocumentWithVersion(
+        Guid id,
+        string title,
+        int versionNumber = 1,
+        int majorVersion = 1,
+        int minorVersion = 0)
+    {
+        var document = new Document
+        {
+            Id = id,
+            Title = title,
+            Description = "Description",
+            DocumentTypeId = TranscriptDocumentTypeId,
+            CreatedByUserId = UserId,
+            Status = "PendingApproval",
+            Priority = "Normal",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        document.Versions.Add(new DocumentVersion
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = id,
+            VersionNumber = versionNumber,
+            MajorVersion = majorVersion,
+            MinorVersion = minorVersion,
+            Content = "{}",
+            ChangeNotes = "Initial submission",
+            CreatedAt = document.CreatedAt
+        });
+
+        return document;
     }
 
     private static SubmitDocumentCommand SubmitCommand(
