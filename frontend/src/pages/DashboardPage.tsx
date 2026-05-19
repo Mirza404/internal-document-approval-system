@@ -11,6 +11,11 @@ import { priorityStyles } from "../components/styles/PriorityStyles";
 import { filterOptions } from "../components/utils/FilterOptions";
 import { useDocumentTypes } from "../hooks/useDocumentCatalog";
 import {
+  useAdminUsers,
+  useUpdateAdminUserRole,
+  useUpdateAdminUserStatus,
+} from "../hooks/useAdminUsers";
+import {
   useCreateDocument,
   useDocuments,
   useUpdateDocument,
@@ -882,6 +887,13 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
 const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const [filter, setFilter] = useState<(typeof filterOptions)[number]>("All");
+  const [showUsersModal, setShowUsersModal] = useState(false);
+  const [adminMessage, setAdminMessage] = useState<string | null>(null);
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const isAdmin = authUser.role.toLowerCase() === "admin";
+  const adminUsersQuery = useAdminUsers();
+  const updateRole = useUpdateAdminUserRole();
+  const updateStatus = useUpdateAdminUserStatus();
 
   const filteredQueue = useMemo(() => {
     if (filter === "All") {
@@ -890,6 +902,30 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
     return reviewQueue.filter((item) => item.stage === filter);
   }, [filter]);
+
+  const handleRoleChange = async (id: string, role: string) => {
+    setAdminMessage(null);
+    setAdminError(null);
+
+    try {
+      await updateRole.mutateAsync({ id, role });
+      setAdminMessage("Role updated.");
+    } catch (error) {
+      setAdminError(getErrorMessage(error));
+    }
+  };
+
+  const handleStatusChange = async (id: string, isActive: boolean) => {
+    setAdminMessage(null);
+    setAdminError(null);
+
+    try {
+      await updateStatus.mutateAsync({ id, isActive });
+      setAdminMessage(isActive ? "User activated." : "User deactivated.");
+    } catch (error) {
+      setAdminError(getErrorMessage(error));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-muted/40 pb-16">
@@ -920,6 +956,15 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
               >
                 Sign out
               </button>
+              {isAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => setShowUsersModal(true)}
+                  className="rounded-md border border-border/60 bg-card px-5 py-2 text-sm font-semibold text-foreground/70 transition hover:border-primary/40 hover:text-foreground"
+                >
+                  Manage users
+                </button>
+              ) : null}
               <button className="rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition hover:bg-primary/90">
                 New approval flow
               </button>
@@ -1096,6 +1141,108 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
           </div>
         </section>
       </div>
+
+      {showUsersModal ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-6">
+          <div className="w-full max-w-4xl rounded-2xl border border-border/60 bg-background shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+                  Admin
+                </p>
+                <h2 className="mt-1 text-xl font-semibold text-foreground">
+                  User management
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUsersModal(false)}
+                className="rounded-full border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-auto px-6 py-5">
+              {adminUsersQuery.isLoading ? (
+                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  Loading users...
+                </p>
+              ) : null}
+
+              {adminUsersQuery.isError ? (
+                <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {getErrorMessage(adminUsersQuery.error)}
+                </p>
+              ) : null}
+
+              {!adminUsersQuery.isLoading &&
+              (adminUsersQuery.data?.length ?? 0) === 0 ? (
+                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  No users found.
+                </p>
+              ) : null}
+
+              {adminUsersQuery.data && adminUsersQuery.data.length > 0 ? (
+                <div className="space-y-3">
+                  {adminUsersQuery.data.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">
+                          {user.fullName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <select
+                          className="rounded-md border border-border/60 bg-background px-3 py-2 text-xs font-semibold text-foreground/80"
+                          value={user.role}
+                          onChange={(event) =>
+                            handleRoleChange(user.id, event.target.value)
+                          }
+                        >
+                          <option value="Employee">Employee</option>
+                          <option value="Approver">Approver</option>
+                          <option value="Admin">Admin</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleStatusChange(user.id, !user.isActive)
+                          }
+                          className={`rounded-md border px-3 py-2 text-xs font-semibold transition ${
+                            user.isActive
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300"
+                              : "border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-300"
+                          }`}
+                        >
+                          {user.isActive ? "Active" : "Inactive"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {adminMessage ? (
+                <p className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  {adminMessage}
+                </p>
+              ) : null}
+              {adminError ? (
+                <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {adminError}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

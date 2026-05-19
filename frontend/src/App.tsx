@@ -11,7 +11,7 @@ const roleRedirect = (role?: string) => {
   switch ((role ?? "").toLowerCase()) {
     case "admin":
       return "/admin";
-    case "reviewer":
+    case "approver":
       return "/reviews";
     default:
       return "/dashboard";
@@ -75,7 +75,7 @@ function App() {
         <Route
           path="/reviews"
           element={
-            <ProtectedRoute roles={["Reviewer"]}>
+            <ProtectedRoute roles={["Approver"]}>
               {dashboardElement}
             </ProtectedRoute>
           }
