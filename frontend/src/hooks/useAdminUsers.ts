@@ -3,7 +3,6 @@ import {
   getAdminUsers,
   updateAdminUserRole,
   updateAdminUserStatus,
-  type AdminUser,
 } from "../api/adminUsers";
 
 export const useAdminUsers = () =>
