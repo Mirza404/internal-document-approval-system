@@ -59,6 +59,16 @@ export interface UpdateDocumentRequest {
   changeNotes?: string | null;
 }
 
+export interface ApprovalHistoryItem {
+  id: string;
+  documentId: string;
+  approverId: string;
+  approverFullName: string;
+  status: string;
+  comments?: string | null;
+  createdAt: string;
+}
+
 // API functions
 export const getDocuments = (): Promise<Document[]> =>
   apiClient.get("/documents");
@@ -83,3 +93,8 @@ export const updateDocument = (
 
 export const deleteDocument = (id: string): Promise<void> =>
   apiClient.delete(`/documents/${id}`);
+
+export const getApprovalHistory = (
+  documentId: string,
+): Promise<ApprovalHistoryItem[]> =>
+  apiClient.get(`/approvals/document/${documentId}`);

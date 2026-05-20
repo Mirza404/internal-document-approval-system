@@ -172,4 +172,16 @@ public sealed class ApprovalsController(IApprovalService approvalService) : Cont
         var result = await approvalService.DecideAsync(command, "request-changes", cancellationToken);
         return ToApprovalResponse(result);
     }
+
+    [HttpGet("document/{documentId:guid}")]
+    [ProducesResponseType(typeof(List<ApprovalResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<ApprovalResponse>>> GetByDocumentId(
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        var approvals = await approvalService.GetByDocumentIdAsync(documentId, cancellationToken);
+        return Ok(approvals.Select(ApprovalResponse.FromDto).ToList());
+    }
+
+
 }

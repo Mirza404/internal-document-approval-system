@@ -6,6 +6,7 @@ public sealed record ApprovalDto(
     Guid Id,
     Guid DocumentId,
     Guid ApproverId,
+    string ApproverFullName,
     string Status,
     string? Comments,
     DateTime CreatedAt)
@@ -16,6 +17,7 @@ public sealed record ApprovalDto(
             approvalAction.Id,
             approvalAction.DocumentId,
             approvalAction.ApprovedByUserId,
+            approvalAction.ApprovedByUser.FullName,
             approvalAction.Action.ToLowerInvariant(),
             approvalAction.Comments,
             approvalAction.CreatedAt);
