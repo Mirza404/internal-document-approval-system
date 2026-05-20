@@ -299,7 +299,9 @@ const AuthPage = () => {
                     disabled={localStatus === "loading"}
                     className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border/60 bg-background px-6 text-sm font-semibold text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {localStatus === "loading" ? "Signing in" : "Sign in as admin"}
+                    {localStatus === "loading"
+                      ? "Signing in"
+                      : "Sign in as admin"}
                   </button>
                 </form>
                 {localError ? (
