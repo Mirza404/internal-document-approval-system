@@ -468,6 +468,12 @@ public sealed class ApplicationServiceTests
             this.userExists = userExists;
         }
 
+        public Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<User>>(new List<User>());
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+            => Task.FromResult<User?>(null);
+
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
             => Task.FromResult(userExists);
 

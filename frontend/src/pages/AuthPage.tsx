@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { useIsAuthenticated, useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
-import { microsoftLogin } from "../api/auth";
+import { localLogin, microsoftLogin } from "../api/auth";
 import { getGraphAccessToken, graphLoginRequest } from "../auth/msal";
 import { useAuth } from "../hooks/useAuth";
 
@@ -12,7 +12,7 @@ const roleRedirect = (role?: string) => {
   switch ((role ?? "").toLowerCase()) {
     case "admin":
       return "/admin";
-    case "reviewer":
+    case "approver":
       return "/reviews";
     default:
       return "/dashboard";
@@ -51,8 +51,13 @@ const getAuthErrorMessage = (error: unknown) => {
     }
   }
 
-  return "Microsoft sign-in failed. Make sure the backend is running and your account is active.";
+  return "Sign-in failed. Make sure the backend is running and your account is active.";
 };
+
+const fieldClass =
+  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-2xs outline-none transition placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+
+const labelClass = "text-xs font-semibold uppercase text-muted-foreground";
 
 const AuthLoadingScreen = () => (
   <main className="grid min-h-screen place-items-center bg-background px-4 text-foreground">
@@ -76,6 +81,11 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState<AuthStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [localStatus, setLocalStatus] = useState<AuthStatus>("idle");
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [localEmail, setLocalEmail] = useState("");
+  const [localPassword, setLocalPassword] = useState("");
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const isProcessingRef = useRef(false);
   const failedAccountRef = useRef<string | null>(null);
 
@@ -163,6 +173,32 @@ const AuthPage = () => {
     });
   };
 
+  const handleLocalLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!localEmail.trim() || !localPassword.trim()) {
+      setLocalError("Email and password are required.");
+      return;
+    }
+
+    setLocalStatus("loading");
+    setLocalError(null);
+
+    try {
+      const response = await localLogin(localEmail.trim(), localPassword);
+      setSession(response.accessToken, {
+        userId: response.userId,
+        email: response.email,
+        fullName: response.fullName,
+        role: response.role,
+      });
+      navigate(roleRedirect(response.role), { replace: true });
+    } catch (authError: unknown) {
+      setLocalError(getAuthErrorMessage(authError));
+    } finally {
+      setLocalStatus("idle");
+    }
+  };
+
   const isAuthenticating =
     inProgress !== InteractionStatus.None ||
     status === "loading" ||
@@ -217,6 +253,63 @@ const AuthPage = () => {
             >
               Sign in with Microsoft
             </button>
+          </div>
+
+          <div className="mt-8 border-t border-border/60 pt-6">
+            <button
+              type="button"
+              onClick={() => setShowAdminLogin((current) => !current)}
+              className="inline-flex w-full items-center justify-between rounded-full border border-border/60 bg-background px-6 py-3 text-[13px] font-medium uppercase tracking-[0.25em] text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary"
+            >
+              {showAdminLogin ? "Hide admin login" : "Login as admin"}
+              <span aria-hidden="true">{showAdminLogin ? "-" : "+"}</span>
+            </button>
+
+            {showAdminLogin ? (
+              <div className="mt-4 space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
+                  Admin access
+                </p>
+                <form className="space-y-4" onSubmit={handleLocalLogin}>
+                  <label className="block space-y-2">
+                    <span className={labelClass}>Email</span>
+                    <input
+                      className={fieldClass}
+                      type="email"
+                      autoComplete="username"
+                      value={localEmail}
+                      onChange={(event) => setLocalEmail(event.target.value)}
+                      placeholder="admin@internaldocs.local"
+                    />
+                  </label>
+                  <label className="block space-y-2">
+                    <span className={labelClass}>Password</span>
+                    <input
+                      className={fieldClass}
+                      type="password"
+                      autoComplete="current-password"
+                      value={localPassword}
+                      onChange={(event) => setLocalPassword(event.target.value)}
+                      placeholder="Enter your admin password"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={localStatus === "loading"}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border/60 bg-background px-6 text-sm font-semibold text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {localStatus === "loading"
+                      ? "Signing in"
+                      : "Sign in as admin"}
+                  </button>
+                </form>
+                {localError ? (
+                  <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    {localError}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           {error ? (

@@ -8,6 +8,7 @@ using InternalDocs.Application.Common;
 using InternalDocs.Domain.Entities;
 using InternalDocs.Infrastructure.Auth;
 using Xunit;
+using BC = BCrypt.Net.BCrypt;
 
 public sealed class AuthServiceTests
 {
@@ -72,6 +73,61 @@ public sealed class AuthServiceTests
         Assert.Equal(0, tokenService.GenerateJwtCallCount);
     }
 
+    [Fact]
+    public async Task LocalLoginAsync_AllowsAdminWithValidPassword()
+    {
+        var repository = new FakeUserRepository
+        {
+            UserByEmail = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "admin@internaldocs.local",
+                FullName = "System Administrator",
+                PasswordHash = BC.HashPassword("AdminPass123!"),
+                Role = "Admin",
+                IsActive = true
+            }
+        };
+        var tokenService = new FakeTokenService();
+        var service = CreateService(repository, "{}", tokenService);
+
+        var result = await service.LocalLoginAsync(
+            new LocalLoginCommand("admin@internaldocs.local", "AdminPass123!"),
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Value);
+        Assert.Equal("Admin", result.Value?.Role);
+        Assert.Equal(1, tokenService.GenerateJwtCallCount);
+    }
+
+    [Fact]
+    public async Task LocalLoginAsync_RejectsEmployeeRole()
+    {
+        var repository = new FakeUserRepository
+        {
+            UserByEmail = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = "employee@ius.edu.ba",
+                FullName = "Employee User",
+                PasswordHash = BC.HashPassword("EmployeePass123!"),
+                Role = "Employee",
+                IsActive = true
+            }
+        };
+        var tokenService = new FakeTokenService();
+        var service = CreateService(repository, "{}", tokenService);
+
+        var result = await service.LocalLoginAsync(
+            new LocalLoginCommand("employee@ius.edu.ba", "EmployeePass123!"),
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
+        Assert.Equal(0, tokenService.GenerateJwtCallCount);
+    }
+
     private static AuthService CreateService(
         FakeUserRepository repository,
         string graphResponse,
@@ -88,6 +144,16 @@ public sealed class AuthServiceTests
         public User? CreatedUser { get; private set; }
         public User? UserByEmail { get; init; }
         public User? UserByMicrosoftObjectId { get; init; }
+
+        public Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<User>>(new List<User>());
+        }
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<User?>(null);
+        }
 
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         {

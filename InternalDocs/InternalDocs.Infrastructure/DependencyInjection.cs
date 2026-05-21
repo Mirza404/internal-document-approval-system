@@ -1,5 +1,6 @@
 using InternalDocs.Application.Abstractions.Repositories;
 using InternalDocs.Application.Abstractions.Services;
+using InternalDocs.Application.Users;
 using InternalDocs.Infrastructure.Auth;
 using InternalDocs.Infrastructure.Data;
 using InternalDocs.Infrastructure.Repositories;
@@ -28,6 +29,9 @@ public static class DependencyInjection
         // Auth services
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
+
+        // Admin user management
+        services.AddScoped<IAdminUserService, AdminUserService>();
 
         // Named HttpClient for Microsoft Graph calls
         services.AddHttpClient("MicrosoftGraph", client =>

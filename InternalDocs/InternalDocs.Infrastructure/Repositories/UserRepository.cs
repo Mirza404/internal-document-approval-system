@@ -7,6 +7,16 @@ namespace InternalDocs.Infrastructure.Repositories;
 
 public sealed class UserRepository(AppDbContext dbContext) : IUserRepository
 {
+    public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await dbContext.Users
+            .OrderByDescending(user => user.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        => dbContext.Users.FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
+
     public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         => dbContext.Users.AnyAsync(x => x.Id == id, cancellationToken);
 

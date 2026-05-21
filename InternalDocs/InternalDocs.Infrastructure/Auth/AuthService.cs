@@ -5,6 +5,7 @@ using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Auth;
 using InternalDocs.Application.Common;
 using InternalDocs.Domain.Entities;
+using BC = BCrypt.Net.BCrypt;
 
 namespace InternalDocs.Infrastructure.Auth;
 
@@ -213,6 +214,59 @@ public sealed class AuthService(
         }
 
         // 4. Issue our own JWT
+        var jwt = tokenService.GenerateJwt(user);
+        var dto = new AuthDto(user.Id, user.Email, user.FullName, user.Role, jwt);
+        return ServiceResult<AuthDto>.Success(dto);
+    }
+
+    public async Task<ServiceResult<AuthDto>> LocalLoginAsync(
+        LocalLoginCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(command.Email) || string.IsNullOrWhiteSpace(command.Password))
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "Email and password are required.",
+                ServiceErrorType.Validation);
+        }
+
+        var user = await userRepository.FindByEmailAsync(command.Email, cancellationToken);
+        if (user is null)
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "Invalid email or password.",
+                ServiceErrorType.Validation);
+        }
+
+        if (!user.IsActive)
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "This account is inactive.",
+                ServiceErrorType.Validation);
+        }
+
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "Password login is not available for this account.",
+                ServiceErrorType.Validation);
+        }
+
+        if (!string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(user.Role, "Approver", StringComparison.OrdinalIgnoreCase))
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "Password login is restricted to Admin and Approver accounts.",
+                ServiceErrorType.Validation);
+        }
+
+        if (!BC.Verify(command.Password, user.PasswordHash))
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "Invalid email or password.",
+                ServiceErrorType.Validation);
+        }
+
         var jwt = tokenService.GenerateJwt(user);
         var dto = new AuthDto(user.Id, user.Email, user.FullName, user.Role, jwt);
         return ServiceResult<AuthDto>.Success(dto);

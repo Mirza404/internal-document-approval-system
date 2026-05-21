@@ -16,4 +16,8 @@ public interface IAuthService
     Task<ServiceResult<AuthDto>> MicrosoftLoginAsync(
         MicrosoftLoginCommand command,
         CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<AuthDto>> LocalLoginAsync(
+        LocalLoginCommand command,
+        CancellationToken cancellationToken = default);
 }
