@@ -949,7 +949,6 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
 const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const pendingApprovalsQuery = usePendingApprovals();
-  const pendingApprovals = pendingApprovalsQuery.data ?? [];
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -959,8 +958,8 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const updateStatus = useUpdateAdminUserStatus();
 
   const filteredQueue = useMemo(() => {
-    return pendingApprovals;
-  }, [pendingApprovals]);
+    return pendingApprovalsQuery.data ?? [];
+  }, [pendingApprovalsQuery.data]);
 
   const handleRoleChange = async (id: string, role: string) => {
     setAdminMessage(null);
