@@ -2,13 +2,9 @@ import { useMemo, useState, type FormEvent } from "react";
 import axios from "axios";
 import type { AuthUser } from "../auth/authStorage";
 import Pill from "../components/ui/Pill";
-import { reviewQueue } from "../mockData/reviewQueue";
 import { activityFeed } from "../mockData/activityFeed";
 import { stats } from "../mockData/stats";
 import { automations } from "../mockData/automations";
-import { stageStyles } from "../components/styles/StageStyles";
-import { priorityStyles } from "../components/styles/PriorityStyles";
-import { filterOptions } from "../components/utils/FilterOptions";
 import { useDocumentTypes } from "../hooks/useDocumentCatalog";
 import {
   useAdminUsers,
@@ -20,11 +16,14 @@ import {
   useDocuments,
   useUpdateDocument,
 } from "../hooks/useDocuments";
+import { usePendingApprovals } from "../hooks/useApprovals";
 import type {
+  ApprovalHistoryItem,
   CreateDocumentRequest,
   Document,
   UpdateDocumentRequest,
 } from "../api/documents";
+import { getApprovalHistory } from "../api/documents";
 
 interface DashboardPageProps {
   authUser: AuthUser;
@@ -194,6 +193,9 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const [formError, setFormError] = useState<string | null>(null);
   const [resubmitMessage, setResubmitMessage] = useState<string | null>(null);
   const [resubmitError, setResubmitError] = useState<string | null>(null);
+  const [approvalHistory, setApprovalHistory] = useState<
+    Record<string, ApprovalHistoryItem[]>
+  >({});
 
   const documentTypesQuery = useDocumentTypes();
   const documentsQuery = useDocuments();
@@ -321,6 +323,25 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
       setResubmitMessage("Document resubmitted.");
     } catch (error) {
       setResubmitError(getErrorMessage(error));
+    }
+  };
+
+  const loadDocumentApprovalHistory = async (documentId: string) => {
+    if (approvalHistory[documentId]) {
+      return;
+    }
+
+    try {
+      const result = await getApprovalHistory(documentId);
+      setApprovalHistory((current) => ({
+        ...current,
+        [documentId]: result,
+      }));
+    } catch {
+      setApprovalHistory((current) => ({
+        ...current,
+        [documentId]: [],
+      }));
     }
   };
 
@@ -832,51 +853,92 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   No submissions yet.
                 </p>
               )}
-              {sortedDocuments.map((document) => (
-                <article
-                  key={document.id}
-                  className="rounded-lg border border-border/60 bg-background/40 p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold text-foreground">
-                        {document.title}
-                      </h3>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {documentTypeLabels.get(document.documentTypeId) ||
-                          "Document type not set"}
-                      </p>
+              {sortedDocuments.map((document) => {
+                if (!approvalHistory[document.id]) {
+                  void loadDocumentApprovalHistory(document.id);
+                }
+
+                return (
+                  <article
+                    key={document.id}
+                    className="rounded-lg border border-border/60 bg-background/40 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-semibold text-foreground">
+                          {document.title}
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {documentTypeLabels.get(document.documentTypeId) ||
+                            "Document type not set"}
+                        </p>
+                      </div>
+                      <Pill
+                        className={
+                          statusClasses[document.status] ??
+                          "bg-muted text-muted-foreground"
+                        }
+                      >
+                        {formatDocumentStatus(document.status)}
+                      </Pill>
                     </div>
-                    <Pill
-                      className={
-                        statusClasses[document.status] ??
-                        "bg-muted text-muted-foreground"
-                      }
-                    >
-                      {formatDocumentStatus(document.status)}
-                    </Pill>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    <span>{document.priority} priority</span>
-                    <span>Submitted {formatDate(document.createdAt)}</span>
-                    <span>
-                      Updated{" "}
-                      {formatDate(document.updatedAt ?? document.createdAt)}
-                    </span>
-                    {document.latestVersionNumber != null && (
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span>{document.priority} priority</span>
+                      <span>Submitted {formatDate(document.createdAt)}</span>
                       <span>
-                        {document.latestVersionLabel ??
-                          `v${document.latestVersionNumber}`}
+                        Updated{" "}
+                        {formatDate(document.updatedAt ?? document.createdAt)}
                       </span>
+                      {document.latestVersionNumber != null && (
+                        <span>
+                          {document.latestVersionLabel ??
+                            `v${document.latestVersionNumber}`}
+                        </span>
+                      )}
+                    </div>
+                    {document.latestVersionChangeNotes && (
+                      <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+                        {document.latestVersionChangeNotes}
+                      </p>
                     )}
-                  </div>
-                  {document.latestVersionChangeNotes && (
-                    <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
-                      {document.latestVersionChangeNotes}
-                    </p>
-                  )}
-                </article>
-              ))}
+
+                    {approvalHistory[document.id]?.length ? (
+                      <div className="mt-4 space-y-2 border-t border-border/50 pt-3">
+                        <p className="text-xs font-semibold uppercase text-muted-foreground">
+                          Approval history
+                        </p>
+
+                        {approvalHistory[document.id].map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-md bg-muted/40 px-3 py-2 text-xs"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-semibold text-foreground">
+                                {item.approverFullName}
+                              </span>
+
+                              <span className="text-muted-foreground">
+                                {new Date(item.createdAt).toLocaleString()}
+                              </span>
+                            </div>
+
+                            <p className="mt-1 font-medium text-primary">
+                              {formatDocumentStatus(item.status)}
+                            </p>
+
+                            {item.comments && (
+                              <p className="mt-1 text-muted-foreground">
+                                {item.comments}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
           </aside>
         </section>
@@ -886,7 +948,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 };
 
 const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
-  const [filter, setFilter] = useState<(typeof filterOptions)[number]>("All");
+  const pendingApprovalsQuery = usePendingApprovals();
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -896,12 +958,8 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const updateStatus = useUpdateAdminUserStatus();
 
   const filteredQueue = useMemo(() => {
-    if (filter === "All") {
-      return reviewQueue;
-    }
-
-    return reviewQueue.filter((item) => item.stage === filter);
-  }, [filter]);
+    return pendingApprovalsQuery.data ?? [];
+  }, [pendingApprovalsQuery.data]);
 
   const handleRoleChange = async (id: string, role: string) => {
     setAdminMessage(null);
@@ -1000,53 +1058,50 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   Review queue
                 </p>
                 <h2 className="text-xl font-semibold text-foreground">
-                  {filter === "All" ? "All documents" : `${filter} review`}
+                  Pending approval requests
                 </h2>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {filterOptions.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setFilter(option)}
-                    className={`rounded-md border px-3 py-1 text-xs font-medium transition ${
-                      option === filter
-                        ? "border-primary/40 bg-primary/10 text-primary"
-                        : "border-border/60 bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
+              <span className="rounded-md border border-border/60 px-2 py-1 text-xs font-semibold text-muted-foreground">
+                {filteredQueue.length}
+              </span>
             </div>
 
             <div className="mt-6 space-y-3">
+              {pendingApprovalsQuery.isLoading && (
+                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  Loading approvals...
+                </p>
+              )}
+
+              {!pendingApprovalsQuery.isLoading &&
+                filteredQueue.length === 0 && (
+                  <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                    No pending approval requests.
+                  </p>
+                )}
+
               {filteredQueue.map((item) => (
                 <article
-                  key={item.id}
+                  key={item.documentId}
                   className="flex flex-col gap-4 rounded-lg border border-border/60 bg-background/40 px-4 py-4 transition hover:border-primary/30 hover:bg-card/80 sm:flex-row sm:items-center"
                 >
                   <div className="flex-1">
                     <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      {item.id}
+                      {item.documentTypeName}
                     </p>
                     <h3 className="mt-1 text-lg font-semibold text-foreground">
                       {item.title}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      Owner · {item.owner} · {item.department}
+                      Submitted by {item.creatorFullName}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <Pill className={stageStyles[item.stage]}>
-                      {item.stage}
-                    </Pill>
-                    <Pill className={priorityStyles[item.priority]}>
-                      {item.priority}
+                    <Pill className="bg-sky-100 text-sky-700">
+                      Pending Approval
                     </Pill>
                     <div className="text-right text-sm text-muted-foreground">
-                      <p>{item.due}</p>
-                      <p className="text-xs">Updated {item.updated}</p>
+                      <p>{formatDate(item.createdAt)}</p>
                     </div>
                     <button className="rounded-md border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary">
                       Open

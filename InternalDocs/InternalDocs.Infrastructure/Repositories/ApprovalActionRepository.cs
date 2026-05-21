@@ -11,6 +11,7 @@ public sealed class ApprovalActionRepository(AppDbContext dbContext) : IApproval
     {
         return dbContext.ApprovalActions
             .AsNoTracking()
+            .Include(x => x.ApprovedByUser)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -18,7 +19,20 @@ public sealed class ApprovalActionRepository(AppDbContext dbContext) : IApproval
     public Task<ApprovalAction?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.ApprovalActions
+            .Include(x => x.ApprovedByUser)
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public Task<List<ApprovalAction>> GetByDocumentIdAsync(
+        Guid documentId,
+        CancellationToken cancellationToken)
+    {
+        return dbContext.ApprovalActions
+            .AsNoTracking()
+            .Include(x => x.ApprovedByUser)
+            .Where(x => x.DocumentId == documentId)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
     }
 
     public void Add(ApprovalAction approvalAction)

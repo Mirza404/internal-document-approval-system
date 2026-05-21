@@ -7,6 +7,7 @@ public sealed class ApprovalResponse
     public Guid Id { get; init; }
     public Guid DocumentId { get; init; }
     public Guid ApproverId { get; init; }
+    public string ApproverFullName { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public string? Comments { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -18,6 +19,7 @@ public sealed class ApprovalResponse
             Id = approvalAction.Id,
             DocumentId = approvalAction.DocumentId,
             ApproverId = approvalAction.ApproverId,
+            ApproverFullName = approvalAction.ApproverFullName,
             Status = approvalAction.Status,
             Comments = approvalAction.Comments,
             CreatedAt = approvalAction.CreatedAt
