@@ -15,6 +15,15 @@ The API uses JWT bearer authentication. Configure these settings in `InternalDoc
 - `Employee` submits, updates, and deletes their own documents.
 - `Approver` creates and updates approval actions.
 
+### Admin User Management
+
+Seeded admins can promote users to `Approver` (or `Admin`) and activate/deactivate accounts.
+To create the first approver in development:
+
+1. Sign in as the seeded admin (`admin@internaldocs.local`).
+2. Open **Manage users** in the admin dashboard.
+3. Find the employee account and change the role to `Approver`.
+
 ## Approval Workflow Decision
 
 The app uses manual approval with limited automatic status movement.
@@ -29,6 +38,7 @@ The app uses manual approval with limited automatic status movement.
 ### Role-protected endpoints
 
 Document catalog (Admin only):
+
 - `POST /document-categories`
 - `PUT /document-categories/{id}`
 - `DELETE /document-categories/{id}`
@@ -37,14 +47,17 @@ Document catalog (Admin only):
 - `DELETE /document-types/{id}`
 
 Documents (Employee only):
+
 - `POST /documents`
 - `PUT /documents/{id}`
 - `DELETE /documents/{id}`
 
 Approvals (Approver only):
+
 - `POST /approvals`
 - `PUT /approvals/{id}`
 
 Notes:
+
 - The API reads the current user id from the JWT and does not accept `CreatedByUserId` or `ApproverId` in request bodies.
 - `GET /document-categories` and `GET /document-types` are authenticated but available to any role.

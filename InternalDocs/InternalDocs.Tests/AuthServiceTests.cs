@@ -145,6 +145,16 @@ public sealed class AuthServiceTests
         public User? UserByEmail { get; init; }
         public User? UserByMicrosoftObjectId { get; init; }
 
+        public Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<User>>(new List<User>());
+        }
+
+        public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<User?>(null);
+        }
+
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
         {
             return Task.FromResult(false);

@@ -4,6 +4,8 @@ namespace InternalDocs.Application.Abstractions.Repositories;
 
 public interface IUserRepository
 {
+    Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken);
+    Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken);
     Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken);
     Task<User?> FindByMicrosoftObjectIdAsync(string microsoftObjectId, CancellationToken cancellationToken);

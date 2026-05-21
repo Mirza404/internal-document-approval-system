@@ -13,7 +13,6 @@ const roleRedirect = (role?: string) => {
     case "admin":
       return "/admin";
     case "approver":
-    case "reviewer":
       return "/reviews";
     default:
       return "/dashboard";
