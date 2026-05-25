@@ -7,9 +7,13 @@ import { automations } from "./mockData/automations";
 import { stageStyles } from "./components/styles/StageStyles";
 import { priorityStyles } from "./components/styles/PriorityStyles";
 import { filterOptions } from "./components/utils/FilterOptions";
+import { AdminDashboard } from "./AdminDashboard";
+import { AdminUsersPage } from "./AdminUsersPage";
+import { AdminDocTypesPage } from "./AdminDocTypesPage";
 
 function App() {
   const [filter, setFilter] = useState<(typeof filterOptions)[number]>("All");
+  const [adminPage, setAdminPage] = useState<"dashboard" | "users" | "doctypes" | null>(null);
 
   const filteredQueue = useMemo(() => {
     if (filter === "All") {
@@ -18,6 +22,38 @@ function App() {
 
     return reviewQueue.filter((item) => item.stage === filter);
   }, [filter]);
+
+  if (adminPage === "dashboard") {
+    return <AdminDashboard onNavigate={(page) => setAdminPage(page)} />;
+  }
+
+  if (adminPage === "users") {
+    return (
+      <div>
+        <button
+          onClick={() => setAdminPage("dashboard")}
+          className="fixed top-4 left-4 z-50 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 bg-white shadow-sm"
+        >
+          ← Back to Admin
+        </button>
+        <AdminUsersPage />
+      </div>
+    );
+  }
+
+  if (adminPage === "doctypes") {
+    return (
+      <div>
+        <button
+          onClick={() => setAdminPage("dashboard")}
+          className="fixed top-4 left-4 z-50 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 bg-white shadow-sm"
+        >
+          ← Back to Admin
+        </button>
+        <AdminDocTypesPage />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 pb-16">
@@ -43,6 +79,12 @@ function App() {
               </button>
               <button className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400">
                 Share weekly digest
+              </button>
+              <button
+                onClick={() => setAdminPage("dashboard")}
+                className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:border-slate-400"
+              >
+                ⚙️ Admin
               </button>
             </div>
           </div>
