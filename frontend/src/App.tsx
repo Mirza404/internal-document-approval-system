@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 
 const roleRedirect = (role?: string) => {
   switch ((role ?? "").toLowerCase()) {
@@ -26,7 +27,8 @@ function App() {
     isAuthenticated && user ? roleRedirect(user.role) : "/auth";
 
   const handleLogout = () => {
-    const account = instance.getActiveAccount() ?? instance.getAllAccounts()[0];
+    const account =
+      instance.getActiveAccount() ?? instance.getAllAccounts()[0];
 
     clearSession();
     sessionStorage.removeItem("authMode");
@@ -38,6 +40,13 @@ function App() {
   const dashboardElement =
     isAuthenticated && user ? (
       <DashboardPage authUser={user} onLogout={handleLogout} />
+    ) : (
+      <Navigate to="/auth" replace />
+    );
+
+  const adminElement =
+    isAuthenticated && user ? (
+      <AdminDashboard authUser={user} onLogout={handleLogout} />
     ) : (
       <Navigate to="/auth" replace />
     );
@@ -68,7 +77,7 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute roles={["Admin"]}>
-              {dashboardElement}
+              {adminElement}
             </ProtectedRoute>
           }
         />
