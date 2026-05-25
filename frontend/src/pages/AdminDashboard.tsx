@@ -74,11 +74,16 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
     [categoriesQuery.data],
   );
 
-  const updateField = (field: keyof DocumentTypeFormState, value: string | boolean) => {
+  const updateField = (
+    field: keyof DocumentTypeFormState,
+    value: string | boolean,
+  ) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleDocumentTypeSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleDocumentTypeSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     setFormMessage(null);
     setFormError(null);
