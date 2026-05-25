@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 
 const roleRedirect = (role?: string) => {
   switch ((role ?? "").toLowerCase()) {
@@ -42,6 +43,13 @@ function App() {
       <Navigate to="/auth" replace />
     );
 
+  const adminElement =
+    isAuthenticated && user ? (
+      <AdminDashboard authUser={user} onLogout={handleLogout} />
+    ) : (
+      <Navigate to="/auth" replace />
+    );
+
   const authElement =
     isAuthenticated && user ? (
       <Navigate to={roleRedirect(user.role)} replace />
@@ -68,7 +76,7 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute roles={["Admin"]}>
-              {dashboardElement}
+              {adminElement}
             </ProtectedRoute>
           }
         />
