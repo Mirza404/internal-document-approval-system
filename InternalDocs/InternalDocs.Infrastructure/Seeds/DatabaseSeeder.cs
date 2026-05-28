@@ -6,6 +6,11 @@ namespace InternalDocs.Infrastructure.Seeds;
 
 public static class DatabaseSeeder
 {
+    private const string DefaultAdminEmail = "admin@internaldocs.local";
+    private const string DefaultAdminPassword = "AdminPass123!";
+    private const string DefaultEmployeeEmail = "employee@internaldocs.local";
+    private const string DefaultEmployeePassword = "EmployeePass123!";
+
     private static readonly DocumentCategory[] SeedCategories =
     [
         new()
@@ -78,30 +83,54 @@ public static class DatabaseSeeder
         }
     ];
 
-    public static async Task SeedAdminUserAsync(AppDbContext context)
+    public static async Task SeedLocalUsersAsync(AppDbContext context)
     {
-        // Check if admin user already exists
-        if (context.Users.Any(u => u.Email == "admin@internaldocs.local"))
+        await SeedLocalUserAsync(
+            context,
+            Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? DefaultAdminEmail,
+            Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? DefaultAdminPassword,
+            "System Administrator",
+            "Admin");
+
+        await SeedLocalUserAsync(
+            context,
+            Environment.GetEnvironmentVariable("EMPLOYEE_EMAIL") ?? DefaultEmployeeEmail,
+            Environment.GetEnvironmentVariable("EMPLOYEE_PASSWORD") ?? DefaultEmployeePassword,
+            "Demo Employee",
+            "Employee");
+    }
+
+    private static async Task SeedLocalUserAsync(
+        AppDbContext context,
+        string email,
+        string password,
+        string fullName,
+        string role)
+    {
+        var existingUser = context.Users.FirstOrDefault(u => u.Email == email);
+        if (existingUser is not null)
         {
+            existingUser.FullName = fullName;
+            existingUser.PasswordHash = BC.HashPassword(password);
+            existingUser.Role = role;
+            existingUser.IsActive = true;
+            existingUser.UpdatedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync();
             return;
         }
 
-        // Get password from environment variable
-        var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
-            ?? throw new InvalidOperationException("ADMIN_PASSWORD environment variable is not set");
-
-        var adminUser = new User
+        var user = new User
         {
             Id = Guid.NewGuid(),
-            Email = "admin@internaldocs.local",
-            FullName = "System Administrator",
-            PasswordHash = BC.HashPassword(adminPassword),
-            Role = "Admin",
+            Email = email,
+            FullName = fullName,
+            PasswordHash = BC.HashPassword(password),
+            Role = role,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
 
-        context.Users.Add(adminUser);
+        context.Users.Add(user);
         await context.SaveChangesAsync();
     }
 
