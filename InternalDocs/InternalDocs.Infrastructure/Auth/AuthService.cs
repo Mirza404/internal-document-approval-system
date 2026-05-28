@@ -252,14 +252,6 @@ public sealed class AuthService(
                 ServiceErrorType.Validation);
         }
 
-        if (!string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(user.Role, "Approver", StringComparison.OrdinalIgnoreCase))
-        {
-            return ServiceResult<AuthDto>.Failure(
-                "Password login is restricted to Admin and Approver accounts.",
-                ServiceErrorType.Validation);
-        }
-
         if (!BC.Verify(command.Password, user.PasswordHash))
         {
             return ServiceResult<AuthDto>.Failure(

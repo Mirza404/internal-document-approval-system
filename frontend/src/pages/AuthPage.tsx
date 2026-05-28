@@ -85,7 +85,7 @@ const AuthPage = () => {
   const [localError, setLocalError] = useState<string | null>(null);
   const [localEmail, setLocalEmail] = useState("");
   const [localPassword, setLocalPassword] = useState("");
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
   const isProcessingRef = useRef(false);
   const failedAccountRef = useRef<string | null>(null);
 
@@ -258,17 +258,17 @@ const AuthPage = () => {
           <div className="mt-8 border-t border-border/60 pt-6">
             <button
               type="button"
-              onClick={() => setShowAdminLogin((current) => !current)}
+              onClick={() => setShowPasswordLogin((current) => !current)}
               className="inline-flex w-full items-center justify-between rounded-full border border-border/60 bg-background px-6 py-3 text-[13px] font-medium uppercase tracking-[0.25em] text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary"
             >
-              {showAdminLogin ? "Hide admin login" : "Login as admin"}
-              <span aria-hidden="true">{showAdminLogin ? "-" : "+"}</span>
+              {showPasswordLogin ? "Hide password login" : "Password login"}
+              <span aria-hidden="true">{showPasswordLogin ? "-" : "+"}</span>
             </button>
 
-            {showAdminLogin ? (
+            {showPasswordLogin ? (
               <div className="mt-4 space-y-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                  Admin access
+                  Local development access
                 </p>
                 <form className="space-y-4" onSubmit={handleLocalLogin}>
                   <label className="block space-y-2">
@@ -279,7 +279,7 @@ const AuthPage = () => {
                       autoComplete="username"
                       value={localEmail}
                       onChange={(event) => setLocalEmail(event.target.value)}
-                      placeholder="admin@internaldocs.local"
+                      placeholder="employee@internaldocs.local"
                     />
                   </label>
                   <label className="block space-y-2">
@@ -290,7 +290,7 @@ const AuthPage = () => {
                       autoComplete="current-password"
                       value={localPassword}
                       onChange={(event) => setLocalPassword(event.target.value)}
-                      placeholder="Enter your admin password"
+                      placeholder="Enter your password"
                     />
                   </label>
                   <button
@@ -300,7 +300,7 @@ const AuthPage = () => {
                   >
                     {localStatus === "loading"
                       ? "Signing in"
-                      : "Sign in as admin"}
+                      : "Sign in with password"}
                   </button>
                 </form>
                 {localError ? (
