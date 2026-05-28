@@ -1,15 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getApprovals,
-  getApproval,
+  approveDocument,
   createApproval,
-  updateApproval,
+  getApproval,
+  getApprovals,
   getPendingApprovals,
+  rejectDocument,
+  requestDocumentChanges,
+  updateApproval,
   type Approval,
+  type ApprovalDecisionRequest,
   type PendingApprovalItem,
 } from "../api/approvals";
 
-// Query hooks
 export const useApprovals = () => {
   return useQuery({
     queryKey: ["approvals"],
@@ -32,7 +35,6 @@ export const usePendingApprovals = () => {
   });
 };
 
-// Mutation hooks
 export const useCreateApproval = () => {
   const queryClient = useQueryClient();
 
@@ -55,3 +57,36 @@ export const useUpdateApproval = () => {
     },
   });
 };
+
+const useApprovalDecisionMutation = (
+  mutationFn: (
+    documentId: string,
+    data: ApprovalDecisionRequest,
+  ) => Promise<Approval>,
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      comments,
+    }: {
+      documentId: string;
+      comments?: string | null;
+    }) => mutationFn(documentId, { comments }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["approvals", "pending"] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+    },
+  });
+};
+
+export const useApproveDocument = () =>
+  useApprovalDecisionMutation(approveDocument);
+
+export const useRejectDocument = () =>
+  useApprovalDecisionMutation(rejectDocument);
+
+export const useRequestDocumentChanges = () =>
+  useApprovalDecisionMutation(requestDocumentChanges);
