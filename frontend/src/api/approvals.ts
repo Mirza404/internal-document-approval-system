@@ -52,7 +52,8 @@ export const getPendingApprovals = (): Promise<PendingApprovalItem[]> =>
 export const approveDocument = (
   documentId: string,
   data: ApprovalDecisionRequest,
-): Promise<Approval> => apiClient.post(`/approvals/${documentId}/approve`, data);
+): Promise<Approval> =>
+  apiClient.post(`/approvals/${documentId}/approve`, data);
 
 export const rejectDocument = (
   documentId: string,

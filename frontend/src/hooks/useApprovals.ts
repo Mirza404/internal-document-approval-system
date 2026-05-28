@@ -59,7 +59,10 @@ export const useUpdateApproval = () => {
 };
 
 const useApprovalDecisionMutation = (
-  mutationFn: (documentId: string, data: ApprovalDecisionRequest) => Promise<Approval>,
+  mutationFn: (
+    documentId: string,
+    data: ApprovalDecisionRequest,
+  ) => Promise<Approval>,
 ) => {
   const queryClient = useQueryClient();
 

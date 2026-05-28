@@ -89,8 +89,7 @@ export const getDocumentTypes = (): Promise<DocumentType[]> =>
 
 export const createDocumentCategory = (
   data: CreateDocumentCategoryRequest,
-): Promise<DocumentCategory> =>
-  apiClient.post("/document-categories", data);
+): Promise<DocumentCategory> => apiClient.post("/document-categories", data);
 
 export const updateDocumentCategory = (
   id: string,
@@ -103,14 +102,12 @@ export const deleteDocumentCategory = (id: string): Promise<void> =>
 
 export const createDocumentType = (
   data: CreateDocumentTypeRequest,
-): Promise<DocumentType> =>
-  apiClient.post("/document-types", data);
+): Promise<DocumentType> => apiClient.post("/document-types", data);
 
 export const updateDocumentType = (
   id: string,
   data: UpdateDocumentTypeRequest,
-): Promise<DocumentType> =>
-  apiClient.put(`/document-types/${id}`, data);
+): Promise<DocumentType> => apiClient.put(`/document-types/${id}`, data);
 
 export const deleteDocumentType = (id: string): Promise<void> =>
   apiClient.delete(`/document-types/${id}`);

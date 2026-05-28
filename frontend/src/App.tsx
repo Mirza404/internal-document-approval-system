@@ -27,8 +27,7 @@ function App() {
     isAuthenticated && user ? roleRedirect(user.role) : "/auth";
 
   const handleLogout = () => {
-    const account =
-      instance.getActiveAccount() ?? instance.getAllAccounts()[0];
+    const account = instance.getActiveAccount() ?? instance.getAllAccounts()[0];
 
     clearSession();
     sessionStorage.removeItem("authMode");
@@ -76,9 +75,7 @@ function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute roles={["Admin"]}>
-              {adminElement}
-            </ProtectedRoute>
+            <ProtectedRoute roles={["Admin"]}>{adminElement}</ProtectedRoute>
           }
         />
         <Route

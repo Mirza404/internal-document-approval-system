@@ -1,7 +1,6 @@
 import { useState, useMemo, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
-
 import axios from "axios";
 import type { AuthUser } from "../auth/authStorage";
 import Pill from "../components/ui/Pill";
@@ -171,60 +170,60 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
     }
   };
 
- return (
-  <div className="min-h-screen bg-muted/40 pb-16">
-    <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
-      <header className="rounded-lg border border-border/60 bg-card/80 px-8 py-10 shadow-sm backdrop-blur">
-        <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
-          Administration
-        </p>
+  return (
+    <div className="min-h-screen bg-muted/40 pb-16">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
+        <header className="rounded-lg border border-border/60 bg-card/80 px-8 py-10 shadow-sm backdrop-blur">
+          <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
+            Administration
+          </p>
 
-        <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
-              Admin Management
-            </h1>
+          <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-3">
+              <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
+                Admin Management
+              </h1>
 
-            <p className="max-w-2xl text-base text-muted-foreground">
-              Manage users and document types to keep your document approval
-              workflow running smoothly.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <div className="rounded-md border border-border/60 bg-background/70 px-4 py-2 text-sm font-medium text-foreground/80">
-              {authUser.fullName} · {authUser.role}
+              <p className="max-w-2xl text-base text-muted-foreground">
+                Manage users and document types to keep your document approval
+                workflow running smoothly.
+              </p>
             </div>
 
-            <button
-              type="button"
-              onClick={onLogout}
-              className="rounded-md border border-border/60 bg-background/80 px-5 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
-            >
-              Sign out
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <div className="rounded-md border border-border/60 bg-background/70 px-4 py-2 text-sm font-medium text-foreground/80">
+                {authUser.fullName} · {authUser.role}
+              </div>
 
-            <button
-              type="button"
-              onClick={() => navigate("/approvals")}
-              className="rounded-md border border-border/60 bg-card px-5 py-2 text-sm font-semibold text-foreground/70 transition hover:border-primary/40 hover:text-foreground"
-            >
-              Open approval queue
-            </button>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="rounded-md border border-border/60 bg-background/80 px-5 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
+              >
+                Sign out
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/approvals")}
+                className="rounded-md border border-border/60 bg-card px-5 py-2 text-sm font-semibold text-foreground/70 transition hover:border-primary/40 hover:text-foreground"
+              >
+                Open approval queue
+              </button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="rounded-lg border border-border/60 bg-card shadow-2xs">
-        <div className="flex border-b border-border/60">
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`flex-1 px-6 py-4 text-sm font-semibold transition ${
-              activeTab === "users"
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
+        <div className="rounded-lg border border-border/60 bg-card shadow-2xs">
+          <div className="flex border-b border-border/60">
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`flex-1 px-6 py-4 text-sm font-semibold transition ${
+                activeTab === "users"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
               User Management
             </button>
             <button
@@ -268,12 +267,11 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
                   </p>
                 )}
 
-                {!adminUsersQuery.isLoading &&
-                  adminUsersQuery.isError && (
-                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {getErrorMessage(adminUsersQuery.error)}
-                    </p>
-                  )}
+                {!adminUsersQuery.isLoading && adminUsersQuery.isError && (
+                  <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {getErrorMessage(adminUsersQuery.error)}
+                  </p>
+                )}
 
                 {!adminUsersQuery.isLoading &&
                   (adminUsersQuery.data?.length ?? 0) === 0 && (
@@ -447,13 +445,11 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
                           <button
                             type="submit"
                             disabled={
-                              createDocType.isPending ||
-                              updateDocType.isPending
+                              createDocType.isPending || updateDocType.isPending
                             }
                             className="flex-1 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-2xs transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {createDocType.isPending ||
-                            updateDocType.isPending
+                            {createDocType.isPending || updateDocType.isPending
                               ? "Saving..."
                               : editingTypeId
                                 ? "Update"
