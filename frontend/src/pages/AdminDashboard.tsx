@@ -1,4 +1,7 @@
 import { useState, useMemo, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+
+
 import axios from "axios";
 import type { AuthUser } from "../auth/authStorage";
 import Pill from "../components/ui/Pill";
@@ -53,6 +56,8 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
   const [activeTab, setActiveTab] = useState<"users" | "document-types">(
     "users",
   );
+
+  const navigate = useNavigate();
   const [form, setForm] = useState<DocumentTypeFormState>(initialFormState);
   const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
@@ -166,48 +171,60 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-muted/40 pb-16">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
-        <header className="rounded-lg border border-border/60 bg-card/80 px-8 py-10 shadow-sm backdrop-blur">
-          <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
-            Administration
-          </p>
-          <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3">
-              <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
-                Admin Management
-              </h1>
-              <p className="max-w-2xl text-base text-muted-foreground">
-                Manage users and document types to keep your document approval
-                workflow running smoothly.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <div className="rounded-md border border-border/60 bg-background/70 px-4 py-2 text-sm font-medium text-foreground/80">
-                {authUser.fullName} · {authUser.role}
-              </div>
-              <button
-                type="button"
-                onClick={onLogout}
-                className="rounded-md border border-border/60 bg-background/80 px-5 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </header>
+ return (
+  <div className="min-h-screen bg-muted/40 pb-16">
+    <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
+      <header className="rounded-lg border border-border/60 bg-card/80 px-8 py-10 shadow-sm backdrop-blur">
+        <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
+          Administration
+        </p>
 
-        <div className="rounded-lg border border-border/60 bg-card shadow-2xs">
-          <div className="flex border-b border-border/60">
+        <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
+              Admin Management
+            </h1>
+
+            <p className="max-w-2xl text-base text-muted-foreground">
+              Manage users and document types to keep your document approval
+              workflow running smoothly.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <div className="rounded-md border border-border/60 bg-background/70 px-4 py-2 text-sm font-medium text-foreground/80">
+              {authUser.fullName} · {authUser.role}
+            </div>
+
             <button
-              onClick={() => setActiveTab("users")}
-              className={`flex-1 px-6 py-4 text-sm font-semibold transition ${
-                activeTab === "users"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
+              type="button"
+              onClick={onLogout}
+              className="rounded-md border border-border/60 bg-background/80 px-5 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
             >
+              Sign out
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/approvals")}
+              className="rounded-md border border-border/60 bg-card px-5 py-2 text-sm font-semibold text-foreground/70 transition hover:border-primary/40 hover:text-foreground"
+            >
+              Open approval queue
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="rounded-lg border border-border/60 bg-card shadow-2xs">
+        <div className="flex border-b border-border/60">
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`flex-1 px-6 py-4 text-sm font-semibold transition ${
+              activeTab === "users"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
               User Management
             </button>
             <button

@@ -2,9 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import axios from "axios";
 import type { AuthUser } from "../auth/authStorage";
 import Pill from "../components/ui/Pill";
-import { activityFeed } from "../mockData/activityFeed";
-import { stats } from "../mockData/stats";
-import { automations } from "../mockData/automations";
+
 import { useDocumentTypes } from "../hooks/useDocumentCatalog";
 import {
   useAdminUsers,
@@ -16,7 +14,12 @@ import {
   useDocuments,
   useUpdateDocument,
 } from "../hooks/useDocuments";
-import { usePendingApprovals } from "../hooks/useApprovals";
+import {
+  useApproveDocument,
+  usePendingApprovals,
+  useRejectDocument,
+  useRequestDocumentChanges,
+} from "../hooks/useApprovals";
 import type {
   ApprovalHistoryItem,
   CreateDocumentRequest,
@@ -949,9 +952,19 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
 const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const pendingApprovalsQuery = usePendingApprovals();
+  const approveDocument = useApproveDocument();
+  const rejectDocument = useRejectDocument();
+  const requestChanges = useRequestDocumentChanges();
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [adminMessage, setAdminMessage] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
+    null,
+  );
+  const [decisionComments, setDecisionComments] = useState("");
+  const [decisionMessage, setDecisionMessage] = useState<string | null>(null);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+
   const isAdmin = authUser.role.toLowerCase() === "admin";
   const adminUsersQuery = useAdminUsers();
   const updateRole = useUpdateAdminUserRole();
@@ -960,6 +973,57 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const filteredQueue = useMemo(() => {
     return pendingApprovalsQuery.data ?? [];
   }, [pendingApprovalsQuery.data]);
+
+  const selectedDocument = useMemo(
+    () =>
+      filteredQueue.find(
+        (document) => document.documentId === selectedDocumentId,
+      ) ?? filteredQueue[0],
+    [filteredQueue, selectedDocumentId],
+  );
+
+  const isDecisionPending =
+    approveDocument.isPending ||
+    rejectDocument.isPending ||
+    requestChanges.isPending;
+
+  const handleDecision = async (
+    action: "approve" | "reject" | "request-changes",
+  ) => {
+    if (!selectedDocument) {
+      return;
+    }
+
+    setDecisionMessage(null);
+    setDecisionError(null);
+
+    try {
+      const payload = {
+        documentId: selectedDocument.documentId,
+        comments: decisionComments.trim() || null,
+      };
+
+      if (action === "approve") {
+        await approveDocument.mutateAsync(payload);
+        setDecisionMessage("Document approved.");
+      }
+
+      if (action === "reject") {
+        await rejectDocument.mutateAsync(payload);
+        setDecisionMessage("Document rejected.");
+      }
+
+      if (action === "request-changes") {
+        await requestChanges.mutateAsync(payload);
+        setDecisionMessage("Changes requested.");
+      }
+
+      setDecisionComments("");
+      setSelectedDocumentId(null);
+    } catch (error) {
+      setDecisionError(getErrorMessage(error));
+    }
+  };
 
   const handleRoleChange = async (id: string, role: string) => {
     setAdminMessage(null);
@@ -990,17 +1054,16 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
         <header className="rounded-lg border border-border/60 bg-card/80 px-8 py-10 shadow-sm backdrop-blur">
           <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
-            Internal workflows
+            Approver workspace
           </p>
           <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
               <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
-                Document approvals, orchestrated end-to-end
+                Pending document approvals
               </h1>
               <p className="max-w-2xl text-base text-muted-foreground">
-                Track where every policy, contract, and playbook sits in the
-                pipeline. Tailwind-powered components keep styling consistent so
-                teams ship compliant docs without hand-written CSS.
+                Review employee submissions, open document details, add
+                comments, and choose approve, reject, or request changes.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -1023,39 +1086,48 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   Manage users
                 </button>
               ) : null}
-              <button className="rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition hover:bg-primary/90">
-                New approval flow
-              </button>
-              <button className="rounded-md border border-border/60 bg-card px-5 py-2 text-sm font-semibold text-foreground/70 transition hover:border-primary/40 hover:text-foreground">
-                Share weekly digest
-              </button>
             </div>
           </div>
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
-          {stats.map((stat) => (
-            <article
-              key={stat.label}
-              className="rounded-lg border border-border/60 bg-card px-6 py-5 shadow-2xs"
-            >
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-              <p className="mt-3 text-3xl font-semibold text-foreground">
-                {stat.value}
-              </p>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {stat.helper}
-              </p>
-            </article>
-          ))}
+          <article className="rounded-lg border border-border/60 bg-card px-6 py-5 shadow-2xs">
+            <p className="text-sm text-muted-foreground">Pending requests</p>
+            <p className="mt-3 text-3xl font-semibold text-foreground">
+              {filteredQueue.length}
+            </p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Waiting for action
+            </p>
+          </article>
+
+          <article className="rounded-lg border border-border/60 bg-card px-6 py-5 shadow-2xs">
+            <p className="text-sm text-muted-foreground">Selected document</p>
+            <p className="mt-3 truncate text-2xl font-semibold text-foreground">
+              {selectedDocument?.title ?? "None"}
+            </p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Open request details
+            </p>
+          </article>
+
+          <article className="rounded-lg border border-border/60 bg-card px-6 py-5 shadow-2xs">
+            <p className="text-sm text-muted-foreground">Role</p>
+            <p className="mt-3 text-2xl font-semibold text-foreground">
+              {authUser.role}
+            </p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Approval permissions
+            </p>
+          </article>
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs lg:col-span-2">
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+          <div className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Review queue
+                  Approval queue
                 </p>
                 <h2 className="text-xl font-semibold text-foreground">
                   Pending approval requests
@@ -1073,6 +1145,12 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                 </p>
               )}
 
+              {pendingApprovalsQuery.isError && (
+                <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {getErrorMessage(pendingApprovalsQuery.error)}
+                </p>
+              )}
+
               {!pendingApprovalsQuery.isLoading &&
                 filteredQueue.length === 0 && (
                   <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
@@ -1080,120 +1158,163 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   </p>
                 )}
 
-              {filteredQueue.map((item) => (
-                <article
-                  key={item.documentId}
-                  className="flex flex-col gap-4 rounded-lg border border-border/60 bg-background/40 px-4 py-4 transition hover:border-primary/30 hover:bg-card/80 sm:flex-row sm:items-center"
-                >
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      {item.documentTypeName}
-                    </p>
-                    <h3 className="mt-1 text-lg font-semibold text-foreground">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Submitted by {item.creatorFullName}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Pill className="bg-sky-100 text-sky-700">
-                      Pending Approval
-                    </Pill>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <p>{formatDate(item.createdAt)}</p>
+              {filteredQueue.map((item) => {
+                const isSelected =
+                  selectedDocument?.documentId === item.documentId;
+
+                return (
+                  <article
+                    key={item.documentId}
+                    className={`flex flex-col gap-4 rounded-lg border px-4 py-4 transition sm:flex-row sm:items-center ${
+                      isSelected
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border/60 bg-background/40 hover:border-primary/30 hover:bg-card/80"
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        {item.documentTypeName}
+                      </p>
+                      <h3 className="mt-1 text-lg font-semibold text-foreground">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Submitted by {item.creatorFullName}
+                      </p>
                     </div>
-                    <button className="rounded-md border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary">
-                      Open
-                    </button>
-                  </div>
-                </article>
-              ))}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Pill className="bg-sky-100 text-sky-700">
+                        Pending Approval
+                      </Pill>
+                      <div className="text-right text-sm text-muted-foreground">
+                        <p>{formatDate(item.createdAt)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedDocumentId(item.documentId);
+                          setDecisionMessage(null);
+                          setDecisionError(null);
+                        }}
+                        className="rounded-md border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                      >
+                        {isSelected ? "Opened" : "Open"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </div>
 
-          <div className="space-y-6">
-            <section className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Live activity
-                  </p>
-                  <h2 className="text-xl font-semibold text-foreground">
-                    Today
-                  </h2>
-                </div>
-                <button className="text-xs font-semibold text-primary hover:text-primary/80">
-                  View log
-                </button>
-              </div>
-              <div className="mt-6 space-y-5">
-                {activityFeed.map((activity) => (
-                  <div key={activity.id} className="flex gap-3">
-                    <div className="relative mt-1 h-2 w-2">
-                      <span
-                        className="absolute inset-0 rounded-full bg-primary"
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">
-                        {activity.summary}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.owner} · {activity.channel}
-                      </p>
-                    </div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {activity.time}
+          <aside className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Document detail
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-foreground">
+                {selectedDocument?.title ?? "Select a request"}
+              </h2>
+            </div>
+
+            {selectedDocument ? (
+              <div className="mt-5 space-y-5">
+                <div className="grid gap-3 text-sm">
+                  <div className="rounded-md bg-muted/40 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      Document type
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {selectedDocument.documentTypeName}
                     </p>
                   </div>
-                ))}
-              </div>
-            </section>
 
-            <section className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Automations
-                  </p>
-                  <h2 className="text-xl font-semibold text-foreground">
-                    Stay proactive
-                  </h2>
-                </div>
-                <button className="rounded-md border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary">
-                  Configure
-                </button>
-              </div>
-              <div className="mt-6 space-y-4">
-                {automations.map((flow) => (
-                  <article
-                    key={flow.title}
-                    className="rounded-lg border border-border/60 bg-background/40 p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-semibold text-foreground">
-                        {flow.title}
-                      </h3>
-                      <Pill
-                        className={
-                          flow.status === "Active"
-                            ? "bg-secondary/20 text-secondary"
-                            : "bg-muted text-muted-foreground"
-                        }
-                      >
-                        {flow.status}
-                      </Pill>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {flow.description}
+                  <div className="rounded-md bg-muted/40 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      Submitted by
                     </p>
-                  </article>
-                ))}
+                    <p className="mt-1 font-medium text-foreground">
+                      {selectedDocument.creatorFullName}
+                    </p>
+                  </div>
+
+                  <div className="rounded-md bg-muted/40 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      Submitted
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {formatDate(selectedDocument.createdAt)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-md bg-muted/40 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      Current status
+                    </p>
+                    <p className="mt-1 font-medium text-foreground">
+                      {formatDocumentStatus(selectedDocument.status)}
+                    </p>
+                  </div>
+                </div>
+
+                <label className="space-y-2">
+                  <span className={labelClass}>Approver comments</span>
+                  <textarea
+                    className={`${fieldClass} min-h-28 resize-y`}
+                    placeholder="Add optional comments for approval, rejection, or requested changes."
+                    value={decisionComments}
+                    onChange={(event) =>
+                      setDecisionComments(event.target.value)
+                    }
+                  />
+                </label>
+
+                {(decisionError || decisionMessage) && (
+                  <p
+                    className={`rounded-md px-3 py-2 text-sm ${
+                      decisionError
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {decisionError ?? decisionMessage}
+                  </p>
+                )}
+
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    disabled={isDecisionPending}
+                    onClick={() => void handleDecision("approve")}
+                    className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-2xs transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDecisionPending}
+                    onClick={() => void handleDecision("request-changes")}
+                    className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-white shadow-2xs transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Request changes
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDecisionPending}
+                    onClick={() => void handleDecision("reject")}
+                    className="rounded-md bg-rose-600 px-3 py-2 text-sm font-semibold text-white shadow-2xs transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Reject
+                  </button>
+                </div>
               </div>
-            </section>
-          </div>
+            ) : (
+              <p className="mt-5 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                Open a pending request from the queue to review details and take
+                an approval action.
+              </p>
+            )}
+          </aside>
         </section>
       </div>
 
