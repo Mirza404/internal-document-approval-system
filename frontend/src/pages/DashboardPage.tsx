@@ -93,6 +93,9 @@ const formatDate = (value?: string | null) => {
 const getDocumentDateValue = (document: Document) =>
   new Date(document.updatedAt ?? document.createdAt).getTime();
 
+const getStatusTone = (status: string) =>
+  statusClasses[status] ?? "bg-muted text-muted-foreground";
+
 const getDocumentMetadataRows = (document: Document) =>
   [
     document.leaveType ? ["Leave type", document.leaveType] : null,
@@ -288,6 +291,40 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const approvedCount = myDocuments.filter(
     (document) => document.status === "Approved",
   ).length;
+  const rejectedCount = myDocuments.filter(
+    (document) => document.status === "Rejected",
+  ).length;
+  const totalDocuments = myDocuments.length;
+  const openCount = pendingCount + changesCount;
+  const approvalRate = totalDocuments
+    ? Math.round((approvedCount / totalDocuments) * 100)
+    : 0;
+  const dashboardStats = [
+    {
+      label: "Open",
+      value: openCount,
+      helper: "Pending or returned",
+      className: "border-sky-200 bg-sky-50 text-sky-800",
+    },
+    {
+      label: "Needs changes",
+      value: changesCount,
+      helper: "Waiting on you",
+      className: "border-amber-200 bg-amber-50 text-amber-800",
+    },
+    {
+      label: "Approved",
+      value: approvedCount,
+      helper: `${approvalRate}% approval rate`,
+      className: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    },
+    {
+      label: "Rejected",
+      value: rejectedCount,
+      helper: "Closed without approval",
+      className: "border-rose-200 bg-rose-50 text-rose-800",
+    },
+  ];
 
   const updateField = (field: keyof SubmissionFormState, value: string) => {
     setForm((current) => {
@@ -393,7 +430,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
     if (metadataKind === "leave") {
       return (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4">
           <label className="space-y-2">
             <span className={labelClass}>Leave type</span>
             <input
@@ -429,7 +466,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
     if (metadataKind === "payment") {
       return (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4">
           <label className="space-y-2">
             <span className={labelClass}>Amount</span>
             <input
@@ -457,7 +494,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
     if (metadataKind === "internship") {
       return (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4">
           <label className="space-y-2">
             <span className={labelClass}>Organization</span>
             <input
@@ -482,32 +519,39 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/40 pb-10">
+    <div className="min-h-screen bg-[linear-gradient(180deg,oklch(0.9846_0.0017_247.8389),oklch(0.994_0_0)_38%)] pb-10">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="rounded-lg border border-border/60 bg-card px-5 py-4 shadow-2xs">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase text-muted-foreground">
+        <header className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm">
+          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="px-6 py-7 sm:px-8">
+              <p className="text-xs font-semibold uppercase text-primary">
                 Employee workspace
               </p>
-              <h1 className="mt-1 text-2xl font-semibold text-foreground">
-                My document submissions
+              <h1 className="mt-2 text-3xl font-semibold text-foreground">
+                Submission overview
               </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+                Track active requests, returned documents, and approvals from
+                one workspace.
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="border-t border-border/60 bg-muted/40 px-6 py-5 lg:border-l lg:border-t-0">
               <a
                 href="#new-document"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-2xs transition hover:bg-primary/90"
+                className="inline-flex rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-2xs transition hover:bg-primary/90"
               >
                 New Document
               </a>
-              <div className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground/80">
-                {authUser.fullName} · {authUser.role}
-              </div>
+              <p className="mt-4 text-sm font-semibold text-foreground">
+                {authUser.fullName}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {authUser.role} account
+              </p>
               <button
                 type="button"
                 onClick={onLogout}
-                className="rounded-md border border-border/60 bg-background px-4 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
+                className="mt-4 rounded-md border border-border/70 bg-background px-4 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
               >
                 Sign out
               </button>
@@ -515,22 +559,22 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border border-border/60 bg-card px-5 py-4">
-            <p className="text-sm text-muted-foreground">Pending approval</p>
-            <p className="mt-2 text-3xl font-semibold">{pendingCount}</p>
-          </div>
-          <div className="rounded-lg border border-border/60 bg-card px-5 py-4">
-            <p className="text-sm text-muted-foreground">Changes requested</p>
-            <p className="mt-2 text-3xl font-semibold">{changesCount}</p>
-          </div>
-          <div className="rounded-lg border border-border/60 bg-card px-5 py-4">
-            <p className="text-sm text-muted-foreground">Approved</p>
-            <p className="mt-2 text-3xl font-semibold">{approvedCount}</p>
-          </div>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {dashboardStats.map((stat) => (
+            <article
+              key={stat.label}
+              className={`rounded-lg border px-5 py-4 shadow-2xs ${stat.className}`}
+            >
+              <p className="text-sm font-medium opacity-80">{stat.label}</p>
+              <p className="mt-2 text-3xl font-semibold">{stat.value}</p>
+              <p className="mt-1 text-xs font-semibold uppercase opacity-70">
+                {stat.helper}
+              </p>
+            </article>
+          ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
           <div className="space-y-6">
             <section className="rounded-lg border border-border/60 bg-card p-5 shadow-2xs">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -550,12 +594,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   )}
                 </div>
                 {selectedDocument && (
-                  <Pill
-                    className={
-                      statusClasses[selectedDocument.status] ??
-                      "bg-muted text-muted-foreground"
-                    }
-                  >
+                  <Pill className={getStatusTone(selectedDocument.status)}>
                     {formatDocumentStatus(selectedDocument.status)}
                   </Pill>
                 )}
@@ -832,21 +871,163 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                 ))}
             </section>
 
+            <section className="rounded-lg border border-border/60 bg-card p-5 shadow-2xs">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    My documents
+                  </p>
+                  <h2 className="mt-1 text-xl font-semibold text-foreground">
+                    Submission timeline
+                  </h2>
+                </div>
+                {myDocuments.length > 0 && (
+                  <span className="rounded-md border border-border/60 px-2 py-1 text-xs font-semibold text-muted-foreground">
+                    {myDocuments.length}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {documentsQuery.isLoading && (
+                  <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                    Loading documents...
+                  </p>
+                )}
+                {!documentsQuery.isLoading && sortedDocuments.length === 0 && (
+                  <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                    No submissions yet.
+                  </p>
+                )}
+                {sortedDocuments.map((document) => {
+                  if (!approvalHistory[document.id]) {
+                    void loadDocumentApprovalHistory(document.id);
+                  }
+
+                  return (
+                    <article
+                      key={document.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedDocumentId(document.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedDocumentId(document.id);
+                        }
+                      }}
+                      className={`grid cursor-pointer gap-4 rounded-lg border p-4 text-left transition hover:border-primary/30 hover:shadow-sm md:grid-cols-[minmax(0,1fr)_180px] ${
+                        selectedDocument?.id === document.id
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border/60 bg-background"
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Pill className={getStatusTone(document.status)}>
+                            {formatDocumentStatus(document.status)}
+                          </Pill>
+                          {document.latestVersionNumber != null && (
+                            <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                              {document.latestVersionLabel ??
+                                `v${document.latestVersionNumber}`}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="mt-3 truncate text-base font-semibold text-foreground">
+                          {document.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {documentTypeLabels.get(document.documentTypeId) ||
+                            "Document type not set"}
+                        </p>
+                        {document.latestVersionChangeNotes && (
+                          <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+                            {document.latestVersionChangeNotes}
+                          </p>
+                        )}
+
+                        {approvalHistory[document.id]?.length ? (
+                          <div className="mt-4 space-y-2 border-t border-border/50 pt-3">
+                            <p className="text-xs font-semibold uppercase text-muted-foreground">
+                              Approval notes
+                            </p>
+
+                            {approvalHistory[document.id].map((item) => (
+                              <div
+                                key={item.id}
+                                className="rounded-md bg-muted/40 px-3 py-2 text-xs"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="font-semibold text-foreground">
+                                    {item.approverFullName}
+                                  </span>
+
+                                  <span className="text-muted-foreground">
+                                    {new Date(item.createdAt).toLocaleString()}
+                                  </span>
+                                </div>
+
+                                <p className="mt-1 font-medium text-primary">
+                                  {formatDocumentStatus(item.status)}
+                                </p>
+
+                                {item.comments && (
+                                  <p className="mt-1 text-muted-foreground">
+                                    {item.comments}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="grid content-start gap-3 rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+                        <div>
+                          <p className="font-semibold uppercase">Priority</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">
+                            {document.priority}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-semibold uppercase">Submitted</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">
+                            {formatDate(document.createdAt)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-semibold uppercase">Updated</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">
+                            {formatDate(
+                              document.updatedAt ?? document.createdAt,
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+
+          <aside className="xl:sticky xl:top-6 xl:self-start">
             <form
               id="new-document"
-              className="rounded-lg border border-border/60 bg-card p-5 shadow-2xs"
+              className="rounded-lg border border-border/60 bg-card p-5 shadow-sm"
               onSubmit={handleSubmit}
             >
               <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  Submission
+                <p className="text-sm font-medium text-primary">
+                  Start submission
                 </p>
                 <h2 className="text-xl font-semibold text-foreground">
                   New document
                 </h2>
               </div>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="mt-5 grid gap-4">
                 <label className="space-y-2">
                   <span className={labelClass}>Document type</span>
                   <select
@@ -885,9 +1066,6 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                     <option>Urgent</option>
                   </select>
                 </label>
-              </div>
-
-              <div className="mt-4 grid gap-4">
                 <label className="space-y-2">
                   <span className={labelClass}>Title</span>
                   <input
@@ -924,157 +1102,14 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                 </p>
               )}
 
-              <div className="mt-5 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={createDocument.isPending}
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-2xs transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {createDocument.isPending ? "Submitting..." : "Submit"}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={createDocument.isPending}
+                className="mt-5 w-full rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-2xs transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {createDocument.isPending ? "Submitting..." : "Submit"}
+              </button>
             </form>
-          </div>
-
-          <aside className="rounded-lg border border-border/60 bg-card p-5 shadow-2xs">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  My documents
-                </p>
-                <h2 className="mt-1 text-xl font-semibold text-foreground">
-                  Submission history
-                </h2>
-              </div>
-              {myDocuments.length > 0 && (
-                <span className="rounded-md border border-border/60 px-2 py-1 text-xs font-semibold text-muted-foreground">
-                  {myDocuments.length}
-                </span>
-              )}
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {documentsQuery.isLoading && (
-                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  Loading documents...
-                </p>
-              )}
-              {!documentsQuery.isLoading && sortedDocuments.length === 0 && (
-                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  No submissions yet.
-                </p>
-              )}
-              {sortedDocuments.map((document) => {
-                if (!approvalHistory[document.id]) {
-                  void loadDocumentApprovalHistory(document.id);
-                }
-
-                return (
-                  <article
-                    key={document.id}
-                    className={`rounded-lg border p-4 transition ${
-                      selectedDocument?.id === document.id
-                        ? "border-primary/50 bg-primary/5"
-                        : "border-border/60 bg-background/40 hover:border-primary/30"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-foreground">
-                          {document.title}
-                        </h3>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {documentTypeLabels.get(document.documentTypeId) ||
-                            "Document type not set"}
-                        </p>
-                      </div>
-                      <Pill
-                        className={
-                          statusClasses[document.status] ??
-                          "bg-muted text-muted-foreground"
-                        }
-                      >
-                        {formatDocumentStatus(document.status)}
-                      </Pill>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span>{document.priority} priority</span>
-                      <span>Submitted {formatDate(document.createdAt)}</span>
-                      <span>
-                        Updated{" "}
-                        {formatDate(document.updatedAt ?? document.createdAt)}
-                      </span>
-                      {document.latestVersionNumber != null && (
-                        <span>
-                          {document.latestVersionLabel ??
-                            `v${document.latestVersionNumber}`}
-                        </span>
-                      )}
-                    </div>
-                    {document.latestVersionChangeNotes && (
-                      <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
-                        {document.latestVersionChangeNotes}
-                      </p>
-                    )}
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDocumentId(document.id)}
-                        className="rounded-md border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
-                      >
-                        View detail
-                      </button>
-                      {document.status === "ChangesRequested" ? (
-                        <button
-                          type="button"
-                          onClick={() => handleStartResubmit(document)}
-                          disabled={updateDocument.isPending}
-                          className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Revise & resubmit
-                        </button>
-                      ) : null}
-                    </div>
-
-                    {approvalHistory[document.id]?.length ? (
-                      <div className="mt-4 space-y-2 border-t border-border/50 pt-3">
-                        <p className="text-xs font-semibold uppercase text-muted-foreground">
-                          Approval history
-                        </p>
-
-                        {approvalHistory[document.id].map((item) => (
-                          <div
-                            key={item.id}
-                            className="rounded-md bg-muted/40 px-3 py-2 text-xs"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold text-foreground">
-                                {item.approverFullName}
-                              </span>
-
-                              <span className="text-muted-foreground">
-                                {new Date(item.createdAt).toLocaleString()}
-                              </span>
-                            </div>
-
-                            <p className="mt-1 font-medium text-primary">
-                              {formatDocumentStatus(item.status)}
-                            </p>
-
-                            {item.comments && (
-                              <p className="mt-1 text-muted-foreground">
-                                {item.comments}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
           </aside>
         </section>
       </div>
