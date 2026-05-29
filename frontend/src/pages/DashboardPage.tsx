@@ -313,11 +313,12 @@ const NotificationsMenu = () => {
               </p>
             )}
 
-            {!notificationsQuery.isLoading && unreadNotifications.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                No unread notifications.
-              </p>
-            )}
+            {!notificationsQuery.isLoading &&
+              unreadNotifications.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No unread notifications.
+                </p>
+              )}
 
             {unreadNotifications.slice(0, 6).map((notification) => (
               <div
