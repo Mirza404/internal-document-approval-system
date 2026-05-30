@@ -69,8 +69,8 @@ const initialFormState: SubmissionFormState = {
 
 const statusClasses: Record<string, string> = {
   Draft: "bg-muted text-muted-foreground",
-  PendingApproval: "bg-sky-100 text-sky-700",
-  UnderReview: "bg-indigo-100 text-indigo-700",
+  PendingApproval: "bg-amber-100 text-amber-800",
+  UnderReview: "bg-sky-100 text-sky-700",
   ChangesRequested: "bg-amber-100 text-amber-800",
   Approved: "bg-emerald-100 text-emerald-700",
   Rejected: "bg-rose-100 text-rose-700",
@@ -101,6 +101,23 @@ const formatDate = (value?: string | null) => {
 
 const getDocumentDateValue = (document: Document) =>
   new Date(document.updatedAt ?? document.createdAt).getTime();
+
+const getDocumentMetadataRows = (document: Document) =>
+  [
+    document.leaveType ? ["Leave type", document.leaveType] : null,
+    document.leaveStartDate
+      ? ["Leave start", formatDate(document.leaveStartDate)]
+      : null,
+    document.leaveEndDate
+      ? ["Leave end", formatDate(document.leaveEndDate)]
+      : null,
+    document.amount != null ? ["Amount", String(document.amount)] : null,
+    document.budgetCode ? ["Payment reference", document.budgetCode] : null,
+    document.counterparty ? ["Organization", document.counterparty] : null,
+    document.attachmentNote
+      ? ["Supporting note", document.attachmentNote]
+      : null,
+  ].filter(Boolean) as [string, string][];
 
 const getErrorMessage = (error: unknown) => {
   if (axios.isAxiosError(error)) {
@@ -319,7 +336,13 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const [resubmitForm, setResubmitForm] = useState<SubmissionFormState | null>(
     null,
   );
+  const [resubmitDocumentId, setResubmitDocumentId] = useState<string | null>(
+    null,
+  );
   const [resubmitNotes, setResubmitNotes] = useState("");
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
+    null,
+  );
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [resubmitMessage, setResubmitMessage] = useState<string | null>(null);
@@ -377,6 +400,15 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
     [myDocuments],
   );
   const latestDocument = sortedDocuments[0];
+  const selectedDocument = useMemo(
+    () =>
+      sortedDocuments.find((document) => document.id === selectedDocumentId) ??
+      latestDocument,
+    [latestDocument, selectedDocumentId, sortedDocuments],
+  );
+  const selectedApprovalHistory = selectedDocument
+    ? (approvalHistory[selectedDocument.id] ?? [])
+    : [];
 
   const pendingCount = myDocuments.filter(
     (document) => document.status === "PendingApproval",
@@ -414,7 +446,10 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
     setFormError(null);
 
     try {
-      await createDocument.mutateAsync(buildCreatePayload(form));
+      const createdDocument = await createDocument.mutateAsync(
+        buildCreatePayload(form),
+      );
+      setSelectedDocumentId(createdDocument.id);
       setForm(initialFormState);
       setFormMessage("Submitted for approval.");
     } catch (error) {
@@ -423,6 +458,8 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   };
 
   const handleStartResubmit = (document: Document) => {
+    setSelectedDocumentId(document.id);
+    setResubmitDocumentId(document.id);
     setResubmitForm(buildFormFromDocument(document));
     setResubmitNotes("");
     setResubmitMessage(null);
@@ -447,9 +484,11 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
         data: {
           ...buildUpdatePayload(resubmitForm),
           status: "PendingApproval",
+          changeNotes: resubmitNotes || null,
         },
       });
       setResubmitForm(null);
+      setResubmitDocumentId(null);
       setResubmitNotes("");
       setResubmitMessage("Document resubmitted.");
     } catch (error) {
@@ -625,44 +664,45 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-muted-foreground">
-                    Latest submission
+                    Document detail
                   </p>
                   <h2 className="mt-1 truncate text-lg font-semibold text-foreground">
-                    {latestDocument?.title ?? "No submissions yet"}
+                    {selectedDocument?.title ?? "No submissions yet"}
                   </h2>
-                  {latestDocument && (
+                  {selectedDocument && (
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {documentTypeLabels.get(latestDocument.documentTypeId) ||
-                        "Document type not set"}
+                      {documentTypeLabels.get(
+                        selectedDocument.documentTypeId,
+                      ) || "Document type not set"}
                     </p>
                   )}
                 </div>
-                {latestDocument && (
+                {selectedDocument && (
                   <Pill
                     className={
-                      statusClasses[latestDocument.status] ??
+                      statusClasses[selectedDocument.status] ??
                       "bg-muted text-muted-foreground"
                     }
                   >
-                    {formatDocumentStatus(latestDocument.status)}
+                    {formatDocumentStatus(selectedDocument.status)}
                   </Pill>
                 )}
               </div>
 
               {documentsQuery.isLoading && (
                 <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  Loading latest submission...
+                  Loading document detail...
                 </p>
               )}
 
-              {!documentsQuery.isLoading && latestDocument && (
+              {!documentsQuery.isLoading && selectedDocument && (
                 <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
                   <div>
                     <p className="text-xs font-semibold uppercase text-muted-foreground">
                       Priority
                     </p>
                     <p className="mt-1 font-medium text-foreground">
-                      {latestDocument.priority}
+                      {selectedDocument.priority}
                     </p>
                   </div>
                   <div>
@@ -670,7 +710,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                       Submitted
                     </p>
                     <p className="mt-1 font-medium text-foreground">
-                      {formatDate(latestDocument.createdAt)}
+                      {formatDate(selectedDocument.createdAt)}
                     </p>
                   </div>
                   <div>
@@ -679,38 +719,101 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                     </p>
                     <p className="mt-1 font-medium text-foreground">
                       {formatDate(
-                        latestDocument.updatedAt ?? latestDocument.createdAt,
+                        selectedDocument.updatedAt ??
+                          selectedDocument.createdAt,
                       )}
                     </p>
                   </div>
                 </div>
               )}
 
-              {!documentsQuery.isLoading && !latestDocument && (
+              {!documentsQuery.isLoading && !selectedDocument && (
                 <p className="mt-4 text-sm text-muted-foreground">
                   Submit a document to start building your history.
                 </p>
               )}
 
-              {latestDocument?.latestVersionNumber != null && (
+              {selectedDocument?.description && (
+                <div className="mt-4 rounded-md bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
+                  {selectedDocument.description}
+                </div>
+              )}
+
+              {selectedDocument &&
+                getDocumentMetadataRows(selectedDocument).length > 0 && (
+                  <div className="mt-4 grid gap-3 rounded-md border border-border/60 bg-background/40 p-3 text-sm sm:grid-cols-2">
+                    {getDocumentMetadataRows(selectedDocument).map(
+                      ([label, value]) => (
+                        <div key={label}>
+                          <p className="text-xs font-semibold uppercase text-muted-foreground">
+                            {label}
+                          </p>
+                          <p className="mt-1 font-medium text-foreground">
+                            {value}
+                          </p>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                )}
+
+              {selectedDocument?.latestVersionNumber != null && (
                 <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
                   Latest version{" "}
-                  {latestDocument.latestVersionLabel ??
-                    `v${latestDocument.latestVersionNumber}`}
-                  {latestDocument.latestVersionCreatedAt
-                    ? ` · ${formatDate(latestDocument.latestVersionCreatedAt)}`
+                  {selectedDocument.latestVersionLabel ??
+                    `v${selectedDocument.latestVersionNumber}`}
+                  {selectedDocument.latestVersionCreatedAt
+                    ? ` · ${formatDate(
+                        selectedDocument.latestVersionCreatedAt,
+                      )}`
                     : ""}
-                  {latestDocument.latestVersionChangeNotes
-                    ? ` · ${latestDocument.latestVersionChangeNotes}`
+                  {selectedDocument.latestVersionChangeNotes
+                    ? ` · ${selectedDocument.latestVersionChangeNotes}`
                     : ""}
                 </p>
               )}
 
-              {latestDocument?.status === "ChangesRequested" &&
-                (resubmitForm ? (
+              {selectedDocument && selectedApprovalHistory.length > 0 && (
+                <div className="mt-5 space-y-3 border-t border-border/60 pt-4">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">
+                    Approval history
+                  </p>
+                  {selectedApprovalHistory.map((item) => (
+                    <div key={item.id} className="flex gap-3 text-sm">
+                      <span
+                        className="mt-2 h-2 w-2 rounded-full bg-primary"
+                        aria-hidden="true"
+                      />
+                      <div className="flex-1 rounded-md bg-muted/40 px-3 py-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-semibold text-foreground">
+                            {item.approverFullName}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(item.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="mt-1 font-medium text-primary">
+                          {formatDocumentStatus(item.status)}
+                        </p>
+                        {item.comments && (
+                          <p className="mt-1 text-muted-foreground">
+                            {item.comments}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedDocument?.status === "ChangesRequested" &&
+                (resubmitForm && resubmitDocumentId === selectedDocument.id ? (
                   <form
                     className="mt-5 space-y-4 rounded-lg border border-border/60 bg-background/50 p-4"
-                    onSubmit={(event) => handleResubmit(event, latestDocument)}
+                    onSubmit={(event) =>
+                      handleResubmit(event, selectedDocument)
+                    }
                   >
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="text-base font-semibold text-foreground">
@@ -720,6 +823,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                         type="button"
                         onClick={() => {
                           setResubmitForm(null);
+                          setResubmitDocumentId(null);
                           setResubmitNotes("");
                           setResubmitError(null);
                         }}
@@ -846,7 +950,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                     )}
                     <button
                       type="button"
-                      onClick={() => handleStartResubmit(latestDocument)}
+                      onClick={() => handleStartResubmit(selectedDocument)}
                       disabled={updateDocument.isPending}
                       className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-2xs transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -857,6 +961,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
             </section>
 
             <form
+              id="new-document"
               className="rounded-lg border border-border/60 bg-card p-5 shadow-2xs"
               onSubmit={handleSubmit}
             >
@@ -995,7 +1100,11 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                 return (
                   <article
                     key={document.id}
-                    className="rounded-lg border border-border/60 bg-background/40 p-4"
+                    className={`rounded-lg border p-4 transition ${
+                      selectedDocument?.id === document.id
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border/60 bg-background/40 hover:border-primary/30"
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -1035,6 +1144,26 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                         {document.latestVersionChangeNotes}
                       </p>
                     )}
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDocumentId(document.id)}
+                        className="rounded-md border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                      >
+                        View detail
+                      </button>
+                      {document.status === "ChangesRequested" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleStartResubmit(document)}
+                          disabled={updateDocument.isPending}
+                          className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Revise & resubmit
+                        </button>
+                      ) : null}
+                    </div>
 
                     {approvalHistory[document.id]?.length ? (
                       <div className="mt-4 space-y-2 border-t border-border/50 pt-3">
