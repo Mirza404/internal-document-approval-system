@@ -15,6 +15,14 @@ export interface CreateApprovalRequest {
   comments?: string;
 }
 
+export type ApprovalDecisionAction = "approve" | "reject" | "request-changes";
+
+export interface ApprovalDecisionRequest {
+  documentId: string;
+  action: ApprovalDecisionAction;
+  comments?: string | null;
+}
+
 export interface PendingApprovalItem {
   documentId: string;
   title: string;
@@ -44,3 +52,10 @@ export const updateApproval = (
 
 export const getPendingApprovals = (): Promise<PendingApprovalItem[]> =>
   apiClient.get("/approvals/pending");
+
+export const decideApproval = ({
+  documentId,
+  action,
+  comments,
+}: ApprovalDecisionRequest): Promise<Approval> =>
+  apiClient.post(`/approvals/${documentId}/${action}`, { comments });
