@@ -1,18 +1,23 @@
 import { apiClient } from "./client";
 
-// Types (placeholders)
 export interface Approval {
   id: string;
   documentId: string;
   approverId: string;
-  status: "pending" | "approved" | "rejected";
-  // Add more fields
+  approverFullName?: string;
+  status: string;
+  comments?: string | null;
+  createdAt: string;
 }
 
 export interface CreateApprovalRequest {
   documentId: string;
-  status?: "pending" | "approved" | "rejected";
+  status?: string;
   comments?: string;
+}
+
+export interface ApprovalDecisionRequest {
+  comments?: string | null;
 }
 
 export interface PendingApprovalItem {
@@ -26,7 +31,6 @@ export interface PendingApprovalItem {
   status: string;
 }
 
-// API functions
 export const getApprovals = (): Promise<Approval[]> =>
   apiClient.get("/approvals");
 
@@ -44,3 +48,20 @@ export const updateApproval = (
 
 export const getPendingApprovals = (): Promise<PendingApprovalItem[]> =>
   apiClient.get("/approvals/pending");
+
+export const approveDocument = (
+  documentId: string,
+  data: ApprovalDecisionRequest,
+): Promise<Approval> =>
+  apiClient.post(`/approvals/${documentId}/approve`, data);
+
+export const rejectDocument = (
+  documentId: string,
+  data: ApprovalDecisionRequest,
+): Promise<Approval> => apiClient.post(`/approvals/${documentId}/reject`, data);
+
+export const requestDocumentChanges = (
+  documentId: string,
+  data: ApprovalDecisionRequest,
+): Promise<Approval> =>
+  apiClient.post(`/approvals/${documentId}/request-changes`, data);

@@ -6,13 +6,14 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 
 const roleRedirect = (role?: string) => {
   switch ((role ?? "").toLowerCase()) {
     case "admin":
-      return "/admin";
+      return "/approvals";
     case "approver":
-      return "/reviews";
+      return "/approvals";
     default:
       return "/dashboard";
   }
@@ -42,6 +43,13 @@ function App() {
       <Navigate to="/auth" replace />
     );
 
+  const adminElement =
+    isAuthenticated && user ? (
+      <AdminDashboard authUser={user} onLogout={handleLogout} />
+    ) : (
+      <Navigate to="/auth" replace />
+    );
+
   const authElement =
     isAuthenticated && user ? (
       <Navigate to={roleRedirect(user.role)} replace />
@@ -67,15 +75,13 @@ function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute roles={["Admin"]}>
-              {dashboardElement}
-            </ProtectedRoute>
+            <ProtectedRoute roles={["Admin"]}>{adminElement}</ProtectedRoute>
           }
         />
         <Route
-          path="/reviews"
+          path="/approvals"
           element={
-            <ProtectedRoute roles={["Approver"]}>
+            <ProtectedRoute roles={["Approver", "Admin"]}>
               {dashboardElement}
             </ProtectedRoute>
           }
