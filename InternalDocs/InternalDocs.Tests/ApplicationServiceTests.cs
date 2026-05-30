@@ -1,14 +1,19 @@
 namespace InternalDocs.Tests;
 
 using InternalDocs.Application.Abstractions.Repositories;
+using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Approvals;
 using InternalDocs.Application.Common;
 using InternalDocs.Application.Documents;
 using InternalDocs.Domain.Entities;
+using Moq;
 using Xunit;
 
 public sealed class ApplicationServiceTests
 {
+    private static readonly INotificationService NotificationService =
+        Mock.Of<INotificationService>();
+
     private static readonly Guid UserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid TranscriptDocumentTypeId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid CertificateDocumentTypeId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
@@ -22,7 +27,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             new FakeDocumentRepository(),
             new FakeDocumentTypeRepository(),
-            new FakeUserRepository());
+            new FakeUserRepository(),
+            NotificationService);
 
         var result = await service.SubmitAsync(
             SubmitCommand("Request", createdByUserId: UserId),
@@ -39,7 +45,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             new FakeDocumentRepository(),
             new FakeDocumentTypeRepository(CreateDocumentType(PaymentDocumentTypeId, "Payment Procedure", "Payments")),
-            new FakeUserRepository(userExists: true));
+            new FakeUserRepository(userExists: true),
+            NotificationService);
 
         var result = await service.SubmitAsync(
             SubmitCommand("Payment request", documentTypeId: PaymentDocumentTypeId, createdByUserId: UserId),
@@ -56,7 +63,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             new FakeDocumentRepository(),
             new FakeDocumentTypeRepository(CreateDocumentType(InternshipDocumentTypeId, "Internship Submission", "Internships")),
-            new FakeUserRepository(userExists: true));
+            new FakeUserRepository(userExists: true),
+            NotificationService);
 
         var result = await service.SubmitAsync(
             SubmitCommand("Internship request", documentTypeId: InternshipDocumentTypeId, createdByUserId: UserId),
@@ -74,7 +82,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             documentRepository,
             new FakeDocumentTypeRepository(CreateDocumentType(TranscriptDocumentTypeId, "Transcript", "Academic Records")),
-            new FakeUserRepository(userExists: true));
+            new FakeUserRepository(userExists: true),
+            NotificationService);
 
         var result = await service.SubmitAsync(
             SubmitCommand("Transcript request", "Description", TranscriptDocumentTypeId, UserId),
@@ -99,7 +108,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             documentRepository,
             new FakeDocumentTypeRepository(CreateDocumentType(CertificateDocumentTypeId, "Certificate", "Student Services")),
-            new FakeUserRepository(userExists: true));
+            new FakeUserRepository(userExists: true),
+            NotificationService);
 
         var result = await service.SubmitAsync(
             SubmitCommand("Certificate request", "Description", CertificateDocumentTypeId, UserId),
@@ -128,7 +138,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             documentRepository,
             new FakeDocumentTypeRepository(CreateDocumentType(TranscriptDocumentTypeId, "Transcript", "Academic Records")),
-            new FakeUserRepository());
+            new FakeUserRepository(),
+            NotificationService);
 
         var result = await service.UpdateAsync(
             documentId,
@@ -156,7 +167,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             documentRepository,
             new FakeDocumentTypeRepository(CreateDocumentType(TranscriptDocumentTypeId, "Transcript", "Academic Records")),
-            new FakeUserRepository());
+            new FakeUserRepository(),
+            NotificationService);
 
         var result = await service.UpdateAsync(
             documentId,
@@ -193,7 +205,8 @@ public sealed class ApplicationServiceTests
             new FakeDocumentTypeRepository(
                 CreateDocumentType(TranscriptDocumentTypeId, "Transcript", "Academic Records"),
                 CreateDocumentType(PaymentDocumentTypeId, "Payment Procedure", "Payments")),
-            new FakeUserRepository());
+            new FakeUserRepository(),
+            NotificationService);
 
         var result = await service.UpdateAsync(
             documentId,
@@ -224,7 +237,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             documentRepository,
             new FakeDocumentTypeRepository(CreateDocumentType(GenericDocumentTypeId, "Generic", "Generic")),
-            new FakeUserRepository());
+            new FakeUserRepository(),
+            NotificationService);
 
         var result = await service.UpdateAsync(
             documentId,
@@ -268,7 +282,8 @@ public sealed class ApplicationServiceTests
         var service = new DocumentService(
             documentRepository,
             new FakeDocumentTypeRepository(CreateDocumentType(GenericDocumentTypeId, "Generic", "Generic")),
-            new FakeUserRepository());
+            new FakeUserRepository(),
+            NotificationService);
 
         var result = await service.UpdateAsync(
             documentId,
@@ -309,7 +324,8 @@ public sealed class ApplicationServiceTests
         var service = new ApprovalService(
             approvalRepository,
             new FakeDocumentRepository(),
-            new FakeUserRepository());
+            new FakeUserRepository(),
+            NotificationService);
 
         var result = await service.UpdateAsync(
             approvalId,
