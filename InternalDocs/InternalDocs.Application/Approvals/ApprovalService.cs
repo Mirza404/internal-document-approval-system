@@ -213,16 +213,16 @@ public sealed class ApprovalService(
         document.ApprovedAt = normalizedAction == "Approved" ? now : null;
 
         approvals.Add(approval);
-await approvals.SaveChangesAsync(cancellationToken);
+        await approvals.SaveChangesAsync(cancellationToken);
 
-await notificationService.NotifyUserAsync(
-    document.CreatedByUserId,
-    $"Document {normalizedAction}",
-    $"Your document '{document.Title}' was {normalizedAction.ToLowerInvariant()}.",
-    normalizedAction == "Approved" ? "Success" : "Warning",
-    cancellationToken);
+        await notificationService.NotifyUserAsync(
+            document.CreatedByUserId,
+            $"Document {normalizedAction}",
+            $"Your document '{document.Title}' was {normalizedAction.ToLowerInvariant()}.",
+            normalizedAction == "Approved" ? "Success" : "Warning",
+            cancellationToken);
 
-return ServiceResult<ApprovalDto>.Success(ApprovalDto.FromEntity(approval));
+        return ServiceResult<ApprovalDto>.Success(ApprovalDto.FromEntity(approval));
     }
 
 

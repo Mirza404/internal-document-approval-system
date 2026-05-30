@@ -158,25 +158,25 @@ public sealed class DocumentService(
         });
 
         documents.Add(document);
-await documents.SaveChangesAsync(cancellationToken);
+        await documents.SaveChangesAsync(cancellationToken);
 
-var approvers = await users.GetAllAsync(cancellationToken);
-var approverIds = approvers
-    .Where(user =>
-        user.IsActive &&
-        (string.Equals(user.Role, "Approver", StringComparison.OrdinalIgnoreCase) ||
-         string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase)))
-    .Select(user => user.Id)
-    .ToList();
+        var approvers = await users.GetAllAsync(cancellationToken);
+        var approverIds = approvers
+            .Where(user =>
+                user.IsActive &&
+                (string.Equals(user.Role, "Approver", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase)))
+            .Select(user => user.Id)
+            .ToList();
 
-await notificationService.NotifyUsersAsync(
-    approverIds,
-    "New document submitted",
-    $"A new document '{document.Title}' is waiting for approval.",
-    "Info",
-    cancellationToken);
+        await notificationService.NotifyUsersAsync(
+            approverIds,
+            "New document submitted",
+            $"A new document '{document.Title}' is waiting for approval.",
+            "Info",
+            cancellationToken);
 
-return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
+        return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
     }
 
     public async Task<ServiceResult<DocumentDto>> UpdateAsync(

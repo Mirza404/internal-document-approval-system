@@ -5,6 +5,7 @@ using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Approvals;
 using InternalDocs.Application.DocumentCatalog;
 using InternalDocs.Application.Documents;
+using InternalDocs.Application.Notifications;
 using InternalDocs.Infrastructure;
 using InternalDocs.Infrastructure.Data;
 using InternalDocs.Infrastructure.Seeds;
@@ -12,7 +13,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using InternalDocs.Application.Notifications;
 
 LoadLocalEnvFile();
 
