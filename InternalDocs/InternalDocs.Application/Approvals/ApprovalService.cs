@@ -3,12 +3,14 @@ using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Common;
 using InternalDocs.Domain.Entities;
 
+
 namespace InternalDocs.Application.Approvals;
 
 public sealed class ApprovalService(
     IApprovalActionRepository approvals,
     IDocumentRepository documents,
-    IUserRepository users) : IApprovalService
+    IUserRepository users,
+    INotificationService notificationService) : IApprovalService
 {
     private static readonly Dictionary<string, string> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -211,9 +213,16 @@ public sealed class ApprovalService(
         document.ApprovedAt = normalizedAction == "Approved" ? now : null;
 
         approvals.Add(approval);
-        await approvals.SaveChangesAsync(cancellationToken);
+await approvals.SaveChangesAsync(cancellationToken);
 
-        return ServiceResult<ApprovalDto>.Success(ApprovalDto.FromEntity(approval));
+await notificationService.NotifyUserAsync(
+    document.CreatedByUserId,
+    $"Document {normalizedAction}",
+    $"Your document '{document.Title}' was {normalizedAction.ToLowerInvariant()}.",
+    normalizedAction == "Approved" ? "Success" : "Warning",
+    cancellationToken);
+
+return ServiceResult<ApprovalDto>.Success(ApprovalDto.FromEntity(approval));
     }
 
 
