@@ -2,9 +2,6 @@ import { useMemo, useState, type FormEvent } from "react";
 import axios from "axios";
 import type { AuthUser } from "../auth/authStorage";
 import Pill from "../components/ui/Pill";
-import { activityFeed } from "../mockData/activityFeed";
-import { stats } from "../mockData/stats";
-import { automations } from "../mockData/automations";
 import { useDocumentTypes } from "../hooks/useDocumentCatalog";
 import {
   useAdminUsers,
@@ -1224,7 +1221,7 @@ const ApprovalDetail = ({
   );
 };
 
-const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
+const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const pendingApprovalsQuery = usePendingApprovals();
   const [showUsersModal, setShowUsersModal] = useState(false);
   const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(
@@ -1344,27 +1341,6 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {stats.map((stat, index) => (
-            <article
-              key={stat.label}
-              className={`rounded-lg border px-6 py-5 shadow-2xs ${
-                index === 0
-                  ? "border-sky-200 bg-sky-50 text-sky-800"
-                  : index === 1
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-amber-200 bg-amber-50 text-amber-800"
-              }`}
-            >
-              <p className="text-sm font-medium opacity-80">{stat.label}</p>
-              <p className="mt-3 text-3xl font-semibold">{stat.value}</p>
-              <p className="text-xs font-medium uppercase tracking-wide opacity-70">
-                {stat.helper}
-              </p>
-            </article>
-          ))}
-        </section>
-
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs lg:col-span-2">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1461,87 +1437,6 @@ const MockDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   Pending requests will appear here when they are assigned.
                 </p>
               )}
-            </section>
-
-            <section className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Live activity
-                  </p>
-                  <h2 className="text-xl font-semibold text-foreground">
-                    Today
-                  </h2>
-                </div>
-                <span className="rounded-md bg-accent px-2 py-1 text-xs font-semibold text-accent-foreground">
-                  Live
-                </span>
-              </div>
-              <div className="mt-6 space-y-5">
-                {activityFeed.map((activity) => (
-                  <div key={activity.id} className="flex gap-3">
-                    <div className="relative mt-1 h-2 w-2">
-                      <span
-                        className="absolute inset-0 rounded-full bg-primary"
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">
-                        {activity.summary}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.owner} · {activity.channel}
-                      </p>
-                    </div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {activity.time}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Automations
-                  </p>
-                  <h2 className="text-xl font-semibold text-foreground">
-                    Stay proactive
-                  </h2>
-                </div>
-                <span className="rounded-md border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground">
-                  {automations.length}
-                </span>
-              </div>
-              <div className="mt-6 space-y-4">
-                {automations.map((flow) => (
-                  <article
-                    key={flow.title}
-                    className="rounded-lg border border-border/60 bg-background/40 p-4"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-semibold text-foreground">
-                        {flow.title}
-                      </h3>
-                      <Pill
-                        className={
-                          flow.status === "Active"
-                            ? "bg-secondary/20 text-secondary"
-                            : "bg-muted text-muted-foreground"
-                        }
-                      >
-                        {flow.status}
-                      </Pill>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {flow.description}
-                    </p>
-                  </article>
-                ))}
-              </div>
             </section>
           </div>
         </section>
@@ -1656,7 +1551,7 @@ const DashboardPage = (props: DashboardPageProps) => {
   return props.authUser.role.toLowerCase() === "employee" ? (
     <EmployeeDashboard {...props} />
   ) : (
-    <MockDashboard {...props} />
+    <ApprovalDashboard {...props} />
   );
 };
 
