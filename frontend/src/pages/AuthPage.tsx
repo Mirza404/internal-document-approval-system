@@ -86,7 +86,8 @@ const AuthPage = () => {
   const [localEmail, setLocalEmail] = useState("");
   const [localFullName, setLocalFullName] = useState("");
   const [localPassword, setLocalPassword] = useState("");
-  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const [showLocalAuth, setShowLocalAuth] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const isProcessingRef = useRef(false);
   const failedAccountRef = useRef<string | null>(null);
 
@@ -289,17 +290,17 @@ const AuthPage = () => {
           <div className="mt-8 border-t border-border/60 pt-6">
             <button
               type="button"
-              onClick={() => setShowPasswordLogin((current) => !current)}
+              onClick={() => setShowLocalAuth((current) => !current)}
               className="inline-flex w-full items-center justify-between rounded-full border border-border/60 bg-background px-6 py-3 text-[13px] font-medium uppercase tracking-[0.25em] text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary"
             >
-              {showPasswordLogin ? "Hide password login" : "Password login"}
-              <span aria-hidden="true">{showPasswordLogin ? "-" : "+"}</span>
+              {showLocalAuth ? "Hide email access" : "Use email and password"}
+              <span aria-hidden="true">{showLocalAuth ? "-" : "+"}</span>
             </button>
 
-            {showPasswordLogin ? (
+            {showLocalAuth ? (
               <div className="mt-4 space-y-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                  Local development access
+                  Email access
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -354,7 +355,7 @@ const AuthPage = () => {
                       autoComplete="username"
                       value={localEmail}
                       onChange={(event) => setLocalEmail(event.target.value)}
-                      placeholder="employee@internaldocs.local"
+                      placeholder="admin@internaldocs.local"
                     />
                   </label>
                   <label className="block space-y-2">
@@ -374,8 +375,10 @@ const AuthPage = () => {
                     className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border/60 bg-background px-6 text-sm font-semibold text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {localStatus === "loading"
-                      ? "Signing in"
-                      : "Sign in with password"}
+                      ? "Submitting"
+                      : isRegistering
+                        ? "Create account"
+                        : "Sign in"}
                   </button>
                 </form>
                 {localError ? (
