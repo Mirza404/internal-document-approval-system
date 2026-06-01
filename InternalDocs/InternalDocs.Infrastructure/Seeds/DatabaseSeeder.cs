@@ -1,3 +1,4 @@
+using System.Text.Json;
 using InternalDocs.Domain.Entities;
 using InternalDocs.Infrastructure.Data;
 using BC = BCrypt.Net.BCrypt;
@@ -6,6 +7,13 @@ namespace InternalDocs.Infrastructure.Seeds;
 
 public static class DatabaseSeeder
 {
+    private const string DefaultAdminEmail = "admin@internaldocs.local";
+    private const string DefaultAdminPassword = "AdminPass123!";
+    private const string DefaultEmployeeEmail = "employee@internaldocs.local";
+    private const string DefaultEmployeePassword = "EmployeePass123!";
+    private const string DefaultApproverEmail = "approver@internaldocs.local";
+    private const string DefaultApproverPassword = "ApproverPass123!";
+
     private static readonly DocumentCategory[] SeedCategories =
     [
         new()
@@ -78,30 +86,54 @@ public static class DatabaseSeeder
         }
     ];
 
-    public static async Task SeedAdminUserAsync(AppDbContext context)
+    public static async Task SeedLocalUsersAsync(AppDbContext context)
     {
-        // Check if admin user already exists
-        if (context.Users.Any(u => u.Email == "admin@internaldocs.local"))
+        await SeedLocalUserAsync(
+            context,
+            Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? DefaultAdminEmail,
+            Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? DefaultAdminPassword,
+            "System Administrator",
+            "Admin");
+
+        await SeedLocalUserAsync(
+            context,
+            Environment.GetEnvironmentVariable("EMPLOYEE_EMAIL") ?? DefaultEmployeeEmail,
+            Environment.GetEnvironmentVariable("EMPLOYEE_PASSWORD") ?? DefaultEmployeePassword,
+            "Demo Employee",
+            "Employee");
+    }
+
+    private static async Task SeedLocalUserAsync(
+        AppDbContext context,
+        string email,
+        string password,
+        string fullName,
+        string role)
+    {
+        var existingUser = context.Users.FirstOrDefault(u => u.Email == email);
+        if (existingUser is not null)
         {
+            existingUser.FullName = fullName;
+            existingUser.PasswordHash = BC.HashPassword(password);
+            existingUser.Role = role;
+            existingUser.IsActive = true;
+            existingUser.UpdatedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync();
             return;
         }
 
-        // Get password from environment variable
-        var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
-            ?? throw new InvalidOperationException("ADMIN_PASSWORD environment variable is not set");
-
-        var adminUser = new User
+        var user = new User
         {
             Id = Guid.NewGuid(),
-            Email = "admin@internaldocs.local",
-            FullName = "System Administrator",
-            PasswordHash = BC.HashPassword(adminPassword),
-            Role = "Admin",
+            Email = email,
+            FullName = fullName,
+            PasswordHash = BC.HashPassword(password),
+            Role = role,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
 
-        context.Users.Add(adminUser);
+        context.Users.Add(user);
         await context.SaveChangesAsync();
     }
 
@@ -154,5 +186,215 @@ public static class DatabaseSeeder
         }
 
         await context.SaveChangesAsync();
+    }
+
+    public static async Task SeedDemoDataAsync(AppDbContext context)
+    {
+        await SeedLocalUserAsync(
+            context,
+            Environment.GetEnvironmentVariable("APPROVER_EMAIL") ?? DefaultApproverEmail,
+            Environment.GetEnvironmentVariable("APPROVER_PASSWORD") ?? DefaultApproverPassword,
+            "Demo Approver",
+            "Approver");
+
+        var employeeEmail = Environment.GetEnvironmentVariable("EMPLOYEE_EMAIL") ?? DefaultEmployeeEmail;
+        var approverEmail = Environment.GetEnvironmentVariable("APPROVER_EMAIL") ?? DefaultApproverEmail;
+        var employee = context.Users.First(x => x.Email == employeeEmail);
+        var approver = context.Users.First(x => x.Email == approverEmail);
+        var now = DateTime.UtcNow;
+
+        var documents = new[]
+        {
+            CreateDemoDocument(
+                "10000000-0000-0000-0000-000000000001",
+                "Transcript request for graduate application",
+                "Please issue an official transcript for a graduate program application.",
+                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                employee.Id,
+                "PendingApproval",
+                "High",
+                now.AddDays(-1)),
+            CreateDemoDocument(
+                "10000000-0000-0000-0000-000000000002",
+                "Spring semester payment procedure",
+                "Requesting processing instructions for the spring semester payment.",
+                "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+                employee.Id,
+                "PendingApproval",
+                "Normal",
+                now.AddHours(-10),
+                amount: 1250m,
+                budgetCode: "PAY-2026-014"),
+            CreateDemoDocument(
+                "10000000-0000-0000-0000-000000000003",
+                "Software engineering internship submission",
+                "Internship placement documentation for review.",
+                "cccccccc-cccc-cccc-cccc-cccccccccccc",
+                employee.Id,
+                "PendingApproval",
+                "Normal",
+                now.AddHours(-4),
+                counterparty: "Northwind Labs",
+                attachmentNote: "Signed internship agreement attached."),
+            CreateDemoDocument(
+                "10000000-0000-0000-0000-000000000004",
+                "Enrollment certificate request",
+                "Certificate required for a scholarship application.",
+                "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                employee.Id,
+                "ChangesRequested",
+                "High",
+                now.AddDays(-5),
+                updatedAt: now.AddDays(-3)),
+            CreateDemoDocument(
+                "10000000-0000-0000-0000-000000000005",
+                "Official transcript for exchange program",
+                "Transcript required for exchange program registration.",
+                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                employee.Id,
+                "Approved",
+                "Normal",
+                now.AddDays(-12),
+                updatedAt: now.AddDays(-10),
+                approvedAt: now.AddDays(-10)),
+            CreateDemoDocument(
+                "10000000-0000-0000-0000-000000000006",
+                "Late fee payment review",
+                "Requesting review of a late fee payment procedure.",
+                "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+                employee.Id,
+                "Rejected",
+                "Urgent",
+                now.AddDays(-8),
+                updatedAt: now.AddDays(-7),
+                amount: 75m,
+                budgetCode: "PAY-2026-009"),
+            CreateDemoDocument(
+                "10000000-0000-0000-0000-000000000007",
+                "Student status certificate draft",
+                "Draft request for a student status certificate.",
+                "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                employee.Id,
+                "Draft",
+                "Low",
+                now.AddHours(-2))
+        };
+
+        foreach (var document in documents)
+        {
+            if (context.Documents.Any(x => x.Id == document.Id))
+            {
+                continue;
+            }
+
+            context.Documents.Add(document);
+        }
+
+        await context.SaveChangesAsync();
+
+        var approvals = new[]
+        {
+            CreateDemoApproval(
+                "20000000-0000-0000-0000-000000000001",
+                documents[3].Id,
+                approver.Id,
+                "ChangesRequested",
+                "Please include the scholarship organization name.",
+                now.AddDays(-3)),
+            CreateDemoApproval(
+                "20000000-0000-0000-0000-000000000002",
+                documents[4].Id,
+                approver.Id,
+                "Approved",
+                "Verified and approved.",
+                now.AddDays(-10)),
+            CreateDemoApproval(
+                "20000000-0000-0000-0000-000000000003",
+                documents[5].Id,
+                approver.Id,
+                "Rejected",
+                "The payment reference does not match the submitted request.",
+                now.AddDays(-7))
+        };
+
+        foreach (var approval in approvals)
+        {
+            if (context.ApprovalActions.Any(x => x.Id == approval.Id))
+            {
+                continue;
+            }
+
+            context.ApprovalActions.Add(approval);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private static Document CreateDemoDocument(
+        string id,
+        string title,
+        string description,
+        string documentTypeId,
+        Guid employeeId,
+        string status,
+        string priority,
+        DateTime createdAt,
+        DateTime? updatedAt = null,
+        DateTime? approvedAt = null,
+        decimal? amount = null,
+        string? budgetCode = null,
+        string? counterparty = null,
+        string? attachmentNote = null)
+    {
+        var document = new Document
+        {
+            Id = new Guid(id),
+            Title = title,
+            Description = description,
+            DocumentTypeId = new Guid(documentTypeId),
+            CreatedByUserId = employeeId,
+            Status = status,
+            Priority = priority,
+            Amount = amount,
+            BudgetCode = budgetCode,
+            Counterparty = counterparty,
+            AttachmentNote = attachmentNote,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt,
+            ApprovedAt = approvedAt
+        };
+
+        document.Versions.Add(new DocumentVersion
+        {
+            Id = new Guid(id.Replace("10000000", "30000000", StringComparison.Ordinal)),
+            DocumentId = document.Id,
+            VersionNumber = 1,
+            MajorVersion = 1,
+            MinorVersion = 0,
+            Content = JsonSerializer.Serialize(new { title, description }),
+            ChangeNotes = "Initial submission",
+            CreatedAt = createdAt
+        });
+
+        return document;
+    }
+
+    private static ApprovalAction CreateDemoApproval(
+        string id,
+        Guid documentId,
+        Guid approverId,
+        string action,
+        string comments,
+        DateTime createdAt)
+    {
+        return new ApprovalAction
+        {
+            Id = new Guid(id),
+            DocumentId = documentId,
+            ApprovedByUserId = approverId,
+            Action = action,
+            Comments = comments,
+            CreatedAt = createdAt
+        };
     }
 }

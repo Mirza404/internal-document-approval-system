@@ -31,6 +31,17 @@ public sealed class ApprovalService(
         return pendingDocuments.Select(PendingApprovalItemDto.FromEntity).ToList();
     }
 
+    public async Task<IReadOnlyList<ApprovalDto>> GetByDocumentIdAsync(
+    Guid documentId,
+    CancellationToken cancellationToken)
+    {
+        var result = await approvals.GetByDocumentIdAsync(
+            documentId,
+            cancellationToken);
+
+        return result.Select(ApprovalDto.FromEntity).ToList();
+    }
+
     public async Task<ServiceResult<ApprovalDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var approval = await approvals.GetByIdAsync(id, cancellationToken);

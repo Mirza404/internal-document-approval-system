@@ -385,6 +385,8 @@ public sealed class ApplicationServiceTests
         {
             return Task.CompletedTask;
         }
+
+        public Task<List<ApprovalAction>> GetByDocumentIdAsync(Guid documentId, CancellationToken cancellationToken) => throw new NotImplementedException();
     }
 
     private sealed class FakeDocumentTypeRepository : IDocumentTypeRepository
