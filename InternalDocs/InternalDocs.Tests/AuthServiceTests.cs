@@ -101,33 +101,6 @@ public sealed class AuthServiceTests
         Assert.Equal(1, tokenService.GenerateJwtCallCount);
     }
 
-    [Fact]
-    public async Task LocalLoginAsync_RejectsEmployeeRole()
-    {
-        var repository = new FakeUserRepository
-        {
-            UserByEmail = new User
-            {
-                Id = Guid.NewGuid(),
-                Email = "employee@ius.edu.ba",
-                FullName = "Employee User",
-                PasswordHash = BC.HashPassword("EmployeePass123!"),
-                Role = "Employee",
-                IsActive = true
-            }
-        };
-        var tokenService = new FakeTokenService();
-        var service = CreateService(repository, "{}", tokenService);
-
-        var result = await service.LocalLoginAsync(
-            new LocalLoginCommand("employee@ius.edu.ba", "EmployeePass123!"),
-            CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
-        Assert.Equal(0, tokenService.GenerateJwtCallCount);
-    }
-
     private static AuthService CreateService(
         FakeUserRepository repository,
         string graphResponse,

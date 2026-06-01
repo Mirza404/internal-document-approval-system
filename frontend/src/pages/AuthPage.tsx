@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { useIsAuthenticated, useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
-import { localLogin, microsoftLogin } from "../api/auth";
+import { localLogin, localRegister, microsoftLogin } from "../api/auth";
 import { getGraphAccessToken, graphLoginRequest } from "../auth/msal";
 import { useAuth } from "../hooks/useAuth";
 
@@ -84,8 +84,10 @@ const AuthPage = () => {
   const [localStatus, setLocalStatus] = useState<AuthStatus>("idle");
   const [localError, setLocalError] = useState<string | null>(null);
   const [localEmail, setLocalEmail] = useState("");
+  const [localFullName, setLocalFullName] = useState("");
   const [localPassword, setLocalPassword] = useState("");
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showLocalAuth, setShowLocalAuth] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const isProcessingRef = useRef(false);
   const failedAccountRef = useRef<string | null>(null);
 
@@ -199,6 +201,36 @@ const AuthPage = () => {
     }
   };
 
+  const handleLocalRegister = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!localEmail.trim() || !localPassword.trim() || !localFullName.trim()) {
+      setLocalError("Email, full name, and password are required.");
+      return;
+    }
+
+    setLocalStatus("loading");
+    setLocalError(null);
+
+    try {
+      const response = await localRegister(
+        localEmail.trim(),
+        localFullName.trim(),
+        localPassword,
+      );
+      setSession(response.accessToken, {
+        userId: response.userId,
+        email: response.email,
+        fullName: response.fullName,
+        role: response.role,
+      });
+      navigate(roleRedirect(response.role), { replace: true });
+    } catch (authError: unknown) {
+      setLocalError(getAuthErrorMessage(authError));
+    } finally {
+      setLocalStatus("idle");
+    }
+  };
+
   const isAuthenticating =
     inProgress !== InteractionStatus.None ||
     status === "loading" ||
@@ -258,19 +290,63 @@ const AuthPage = () => {
           <div className="mt-8 border-t border-border/60 pt-6">
             <button
               type="button"
-              onClick={() => setShowAdminLogin((current) => !current)}
+              onClick={() => setShowLocalAuth((current) => !current)}
               className="inline-flex w-full items-center justify-between rounded-full border border-border/60 bg-background px-6 py-3 text-[13px] font-medium uppercase tracking-[0.25em] text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary"
             >
-              {showAdminLogin ? "Hide admin login" : "Login as admin"}
-              <span aria-hidden="true">{showAdminLogin ? "-" : "+"}</span>
+              {showLocalAuth ? "Hide email access" : "Use email and password"}
+              <span aria-hidden="true">{showLocalAuth ? "-" : "+"}</span>
             </button>
 
-            {showAdminLogin ? (
+            {showLocalAuth ? (
               <div className="mt-4 space-y-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-                  Admin access
+                  Email access
                 </p>
-                <form className="space-y-4" onSubmit={handleLocalLogin}>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsRegistering(false)}
+                    className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
+                      isRegistering
+                        ? "border-border/60 text-muted-foreground hover:text-foreground"
+                        : "border-primary/60 text-primary"
+                    }`}
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsRegistering(true)}
+                    className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
+                      isRegistering
+                        ? "border-primary/60 text-primary"
+                        : "border-border/60 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Create account
+                  </button>
+                </div>
+                <form
+                  className="space-y-4"
+                  onSubmit={
+                    isRegistering ? handleLocalRegister : handleLocalLogin
+                  }
+                >
+                  {isRegistering ? (
+                    <label className="block space-y-2">
+                      <span className={labelClass}>Full name</span>
+                      <input
+                        className={fieldClass}
+                        type="text"
+                        autoComplete="name"
+                        value={localFullName}
+                        onChange={(event) =>
+                          setLocalFullName(event.target.value)
+                        }
+                        placeholder="Enter your full name"
+                      />
+                    </label>
+                  ) : null}
                   <label className="block space-y-2">
                     <span className={labelClass}>Email</span>
                     <input
@@ -290,7 +366,7 @@ const AuthPage = () => {
                       autoComplete="current-password"
                       value={localPassword}
                       onChange={(event) => setLocalPassword(event.target.value)}
-                      placeholder="Enter your admin password"
+                      placeholder="Enter your password"
                     />
                   </label>
                   <button
@@ -299,8 +375,10 @@ const AuthPage = () => {
                     className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-border/60 bg-background px-6 text-sm font-semibold text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {localStatus === "loading"
-                      ? "Signing in"
-                      : "Sign in as admin"}
+                      ? "Submitting"
+                      : isRegistering
+                        ? "Create account"
+                        : "Sign in"}
                   </button>
                 </form>
                 {localError ? (

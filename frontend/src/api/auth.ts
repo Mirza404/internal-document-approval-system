@@ -26,3 +26,10 @@ export const localLogin = (
   password: string,
 ): Promise<AuthResponse> =>
   apiClient.post("/auth/local/login", { email, password });
+
+export const localRegister = (
+  email: string,
+  fullName: string,
+  password: string,
+): Promise<AuthResponse> =>
+  apiClient.post("/auth/local/register", { email, fullName, password });
