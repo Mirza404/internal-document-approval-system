@@ -26,10 +26,22 @@ export interface ApprovalDecisionRequest {
 export interface PendingApprovalItem {
   documentId: string;
   title: string;
+  description: string;
   documentTypeId: string;
   documentTypeName: string;
+  documentTypeDescription: string;
+  documentCategoryName: string;
   creatorId: string;
   creatorFullName: string;
+  creatorEmail: string;
+  priority: string;
+  leaveType?: string | null;
+  leaveStartDate?: string | null;
+  leaveEndDate?: string | null;
+  amount?: number | null;
+  budgetCode?: string | null;
+  counterparty?: string | null;
+  attachmentNote?: string | null;
   createdAt: string;
   status: string;
 }
