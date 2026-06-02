@@ -21,6 +21,9 @@ export const getCurrentUser = (): Promise<CurrentUserResponse> =>
 export const microsoftLogin = (accessToken: string): Promise<AuthResponse> =>
   apiClient.post("/auth/microsoft/login", { accessToken });
 
+export const microsoftRegister = (accessToken: string): Promise<AuthResponse> =>
+  apiClient.post("/auth/microsoft/register", { accessToken });
+
 export const localLogin = (
   email: string,
   password: string,
