@@ -5,6 +5,7 @@ using InternalDocs.Application.Abstractions.Services;
 using InternalDocs.Application.Approvals;
 using InternalDocs.Application.DocumentCatalog;
 using InternalDocs.Application.Documents;
+using InternalDocs.Application.Notifications;
 using InternalDocs.Infrastructure;
 using InternalDocs.Infrastructure.Data;
 using InternalDocs.Infrastructure.Seeds;
@@ -20,6 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddSwaggerGen(options =>
 {

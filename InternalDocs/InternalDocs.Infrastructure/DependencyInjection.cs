@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<IApprovalActionRepository, ApprovalActionRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IDocumentTypeRepository, DocumentTypeRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         // Auth services
         services.AddScoped<IAuthService, AuthService>();
