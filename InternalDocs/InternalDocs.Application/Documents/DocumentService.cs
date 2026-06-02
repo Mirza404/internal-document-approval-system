@@ -160,20 +160,9 @@ public sealed class DocumentService(
         documents.Add(document);
         await documents.SaveChangesAsync(cancellationToken);
 
-        var approvers = await users.GetAllAsync(cancellationToken);
-        var approverIds = approvers
-            .Where(user =>
-                user.IsActive &&
-                (string.Equals(user.Role, "Approver", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase)))
-            .Select(user => user.Id)
-            .ToList();
-
-        await notificationService.NotifyUsersAsync(
-            approverIds,
+        await NotifyApproversAsync(
             "New document submitted",
             $"A new document '{document.Title}' is waiting for approval.",
-            "Info",
             cancellationToken);
 
         return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
@@ -283,6 +272,14 @@ public sealed class DocumentService(
         AddDocumentVersion(document, titleChanged, isResubmission, command.ChangeNotes);
 
         await documents.SaveChangesAsync(cancellationToken);
+        if (isResubmission)
+        {
+            await NotifyApproversAsync(
+                "Document resubmitted",
+                $"Document '{document.Title}' was resubmitted and is waiting for approval.",
+                cancellationToken);
+        }
+
         return ServiceResult<DocumentDto>.Success(DocumentDto.FromEntity(document));
     }
 
@@ -491,7 +488,6 @@ public sealed class DocumentService(
 
         document.Versions.Add(new DocumentVersion
         {
-            Id = Guid.NewGuid(),
             DocumentId = document.Id,
             VersionNumber = nextVersionNumber,
             MajorVersion = nextMajorVersion,
@@ -516,6 +512,27 @@ public sealed class DocumentService(
         }
 
         return titleChanged ? "Title changed" : "Document updated";
+    }
+
+    private async Task NotifyApproversAsync(
+        string title,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        var approvers = await users.GetAllAsync(cancellationToken);
+        var approverIds = approvers
+            .Where(user =>
+                user.IsActive &&
+                (string.Equals(user.Role, "Approver", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase)))
+            .Select(user => user.Id);
+
+        await notificationService.NotifyUsersAsync(
+            approverIds,
+            title,
+            message,
+            "Info",
+            cancellationToken);
     }
 
     private static string CreateVersionSnapshot(Document document)
