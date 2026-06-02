@@ -1,4 +1,6 @@
 using System;
+using InternalDocs.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace InternalDocs.Infrastructure.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
     [Migration("20260506073600_AddDocumentCategories")]
     public partial class AddDocumentCategories : Migration
     {
@@ -14,6 +17,8 @@ namespace InternalDocs.Infrastructure.Migrations
         private static readonly Guid ContractCategoryId = new("33333333-3333-3333-3333-333333333333");
         private static readonly Guid GenericCategoryId = new("44444444-4444-4444-4444-444444444444");
         private static readonly string[] CategorySeedColumns = ["Id", "Name", "Description", "CreatedAt"];
+        private static readonly string[] CategorySeedColumnTypes =
+            ["uuid", "character varying(128)", "character varying(500)", "timestamp with time zone"];
 
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -35,6 +40,7 @@ namespace InternalDocs.Infrastructure.Migrations
             migrationBuilder.InsertData(
                 table: "DocumentCategories",
                 columns: CategorySeedColumns,
+                columnTypes: CategorySeedColumnTypes,
                 values: new object[,]
                 {
                     { HrCategoryId, "HR", "People operations, onboarding, leave, and employment documents.", new DateTime(2026, 5, 6, 0, 0, 0, DateTimeKind.Utc) },
