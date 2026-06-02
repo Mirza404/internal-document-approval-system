@@ -17,7 +17,8 @@ namespace InternalDocs.Infrastructure.Migrations
         private static readonly Guid ContractCategoryId = new("33333333-3333-3333-3333-333333333333");
         private static readonly Guid GenericCategoryId = new("44444444-4444-4444-4444-444444444444");
         private static readonly string[] CategorySeedColumns = ["Id", "Name", "Description", "CreatedAt"];
-        private static readonly string[] CategorySeedColumnTypes = ["uuid", "character varying(128)", "character varying(500)", "timestamp with time zone"];
+        private static readonly string[] CategorySeedColumnTypes =
+            ["uuid", "character varying(128)", "character varying(500)", "timestamp with time zone"];
 
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
