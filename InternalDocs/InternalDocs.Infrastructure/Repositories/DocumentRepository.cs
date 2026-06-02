@@ -44,6 +44,7 @@ public sealed class DocumentRepository(AppDbContext dbContext) : IDocumentReposi
         return dbContext.Documents
             .AsNoTracking()
             .Include(x => x.DocumentType)
+                .ThenInclude(x => x.Category)
             .Include(x => x.CreatedByUser)
             .Where(x => x.Status == "PendingApproval")
             .OrderByDescending(x => x.CreatedAt)
