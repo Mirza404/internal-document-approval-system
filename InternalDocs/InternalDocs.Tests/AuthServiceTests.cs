@@ -102,7 +102,7 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
-    public async Task LocalLoginAsync_RejectsEmployeeRole()
+    public async Task LocalLoginAsync_AllowsEmployeeWithValidPassword()
     {
         var repository = new FakeUserRepository
         {
@@ -123,9 +123,10 @@ public sealed class AuthServiceTests
             new LocalLoginCommand("employee@ius.edu.ba", "EmployeePass123!"),
             CancellationToken.None);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal(ServiceErrorType.Validation, result.ErrorType);
-        Assert.Equal(0, tokenService.GenerateJwtCallCount);
+        Assert.True(result.Succeeded);
+        Assert.NotNull(result.Value);
+        Assert.Equal("Employee", result.Value?.Role);
+        Assert.Equal(1, tokenService.GenerateJwtCallCount);
     }
 
     private static AuthService CreateService(
