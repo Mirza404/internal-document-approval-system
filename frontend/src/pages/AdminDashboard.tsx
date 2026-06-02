@@ -37,9 +37,10 @@ const initialFormState: DocumentTypeFormState = {
 };
 
 const fieldClass =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-2xs outline-none transition placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+  "w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-2xs outline-none transition placeholder:text-muted-foreground focus:border-primary/60 focus:bg-background focus:ring-2 focus:ring-primary/15";
 
-const labelClass = "text-xs font-semibold uppercase text-muted-foreground";
+const labelClass =
+  "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
 
 const getErrorMessage = (error: unknown) => {
   if (axios.isAxiosError(error)) {
@@ -171,9 +172,9 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/40 pb-16">
+    <div className="app-shell min-h-screen pb-16">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 lg:px-8">
-        <header className="rounded-lg border border-border/60 bg-card/80 px-8 py-10 shadow-sm backdrop-blur">
+        <header className="app-panel rounded-2xl px-8 py-10">
           <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
             Administration
           </p>
@@ -214,24 +215,28 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
           </div>
         </header>
 
-        <div className="rounded-lg border border-border/60 bg-card shadow-2xs">
+        <div className="app-panel overflow-hidden rounded-2xl">
           <div className="flex border-b border-border/60">
             <button
+              type="button"
               onClick={() => setActiveTab("users")}
+              aria-pressed={activeTab === "users"}
               className={`flex-1 px-6 py-4 text-sm font-semibold transition ${
                 activeTab === "users"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-b-2 border-primary bg-primary/10 text-primary shadow-inner"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               }`}
             >
               User Management
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("document-types")}
+              aria-pressed={activeTab === "document-types"}
               className={`flex-1 px-6 py-4 text-sm font-semibold transition ${
                 activeTab === "document-types"
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-b-2 border-primary bg-primary/10 text-primary shadow-inner"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               }`}
             >
               Document Types
@@ -356,7 +361,7 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
               <section className="space-y-6">
                 <div className="grid gap-6 lg:grid-cols-3">
                   <div className="lg:col-span-1">
-                    <div className="rounded-lg border border-border/60 bg-background/40 p-6">
+                    <div className="app-card rounded-2xl p-6">
                       <h3 className="font-semibold text-foreground">
                         {editingTypeId
                           ? "Edit Document Type"
@@ -499,7 +504,7 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
                             {documentTypesQuery.data.map((docType) => (
                               <article
                                 key={docType.id}
-                                className="rounded-lg border border-border/60 bg-background/40 p-4"
+                                className="app-card app-card-interactive rounded-2xl p-4"
                               >
                                 <div className="flex items-start justify-between gap-4">
                                   <div>

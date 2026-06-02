@@ -68,13 +68,14 @@ const getAuthErrorMessage = (error: unknown) => {
 };
 
 const fieldClass =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-2xs outline-none transition placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+  "w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-2xs outline-none transition placeholder:text-muted-foreground focus:border-primary/60 focus:bg-background focus:ring-2 focus:ring-primary/15";
 
-const labelClass = "text-xs font-semibold uppercase text-muted-foreground";
+const labelClass =
+  "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
 
 const AuthLoadingScreen = () => (
-  <main className="grid min-h-screen place-items-center bg-background px-4 text-foreground">
-    <section className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-8 text-center shadow-lg shadow-primary/10">
+  <main className="app-shell grid min-h-screen place-items-center px-4 text-foreground">
+    <section className="app-panel w-full max-w-md rounded-3xl p-8 text-center">
       <span
         aria-hidden="true"
         className="mx-auto block h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary"
@@ -269,7 +270,7 @@ const AuthPage = () => {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="app-shell min-h-screen text-foreground">
       <section className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
         <div className="space-y-6">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-primary/80">
@@ -281,7 +282,7 @@ const AuthPage = () => {
           <p className="max-w-xl text-base leading-7 text-muted-foreground">
             {copy.subtitle}
           </p>
-          <div className="rounded-2xl border border-border/60 bg-card/70 p-5 shadow-2xs">
+          <div className="app-card rounded-2xl p-5">
             <p className="text-sm font-medium text-foreground">
               Access is restricted to active IUS accounts.
             </p>
@@ -292,7 +293,7 @@ const AuthPage = () => {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-border/60 bg-card p-8 shadow-xl shadow-primary/10">
+        <div className="app-panel rounded-3xl p-8">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
@@ -327,6 +328,7 @@ const AuthPage = () => {
             <button
               type="button"
               onClick={() => setShowLocalAuth((current) => !current)}
+              aria-expanded={showLocalAuth}
               className="inline-flex w-full items-center justify-between rounded-full border border-border/60 bg-background px-6 py-3 text-[13px] font-medium uppercase tracking-[0.25em] text-foreground shadow-2xs transition hover:border-primary/50 hover:text-primary"
             >
               {showLocalAuth ? "Hide email access" : "Use email and password"}
@@ -342,10 +344,11 @@ const AuthPage = () => {
                   <button
                     type="button"
                     onClick={() => setIsRegistering(false)}
+                    aria-pressed={!isRegistering}
                     className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
                       isRegistering
-                        ? "border-border/60 text-muted-foreground hover:text-foreground"
-                        : "border-primary/60 text-primary"
+                        ? "border-border/60 text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
+                        : "border-primary/60 bg-primary/10 text-primary shadow-inner"
                     }`}
                   >
                     Sign in
@@ -353,10 +356,11 @@ const AuthPage = () => {
                   <button
                     type="button"
                     onClick={() => setIsRegistering(true)}
+                    aria-pressed={isRegistering}
                     className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition ${
                       isRegistering
-                        ? "border-primary/60 text-primary"
-                        : "border-border/60 text-muted-foreground hover:text-foreground"
+                        ? "border-primary/60 bg-primary/10 text-primary shadow-inner"
+                        : "border-border/60 text-muted-foreground hover:border-primary/40 hover:bg-muted/60 hover:text-foreground"
                     }`}
                   >
                     Create account

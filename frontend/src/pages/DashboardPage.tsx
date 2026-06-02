@@ -76,11 +76,11 @@ const statusClasses: Record<string, string> = {
 };
 
 const fieldClass =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-2xs outline-none transition placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+  "w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-2xs outline-none transition placeholder:text-muted-foreground focus:border-primary/60 focus:bg-background focus:ring-2 focus:ring-primary/15";
 
-const labelClass = "text-xs font-semibold uppercase text-muted-foreground";
-const shellClass =
-  "min-h-screen bg-[radial-gradient(circle_at_top_left,oklch(0.9275_0.0143_231.215),transparent_30rem),linear-gradient(180deg,oklch(0.9846_0.0017_247.8389),oklch(0.994_0_0)_42%)] pb-10";
+const labelClass =
+  "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
+const shellClass = "app-shell min-h-screen pb-10";
 
 const statusLabels: Record<string, string> = {
   PendingApproval: "Pending Approval",
@@ -198,7 +198,11 @@ const getDocumentMetadataKind = (documentType?: {
     return "internship";
   }
 
-  if (categoryName === "hr") {
+  if (
+    typeName === "leave request" ||
+    categoryName === "hr" ||
+    categoryName === "human resources"
+  ) {
     return "leave";
   }
 
@@ -244,6 +248,7 @@ const NotificationsMenu = () => {
         onClick={() => setIsOpen((current) => !current)}
         className="relative rounded-md border border-border/60 bg-background p-2 transition hover:bg-muted"
         aria-label="Notifications"
+        aria-expanded={isOpen}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -268,7 +273,7 @@ const NotificationsMenu = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-30 mt-2 w-80 rounded-lg border border-border/60 bg-background shadow-lg">
+        <div className="app-panel absolute right-0 z-30 mt-2 w-80 rounded-2xl shadow-lg">
           <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
             <div>
               <p className="font-semibold text-foreground">Notifications</p>
@@ -347,6 +352,8 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
     null,
   );
+  const [isDetailExpanded, setIsDetailExpanded] = useState(true);
+  const detailPanelRef = useRef<HTMLElement | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [resubmitMessage, setResubmitMessage] = useState<string | null>(null);
@@ -496,12 +503,26 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   };
 
   const handleStartResubmit = (document: Document) => {
-    setSelectedDocumentId(document.id);
+    handleSelectDocument(document.id);
     setResubmitDocumentId(document.id);
     setResubmitForm(buildFormFromDocument(document));
     setResubmitNotes("");
     setResubmitMessage(null);
     setResubmitError(null);
+  };
+
+  const handleSelectDocument = (documentId: string) => {
+    setSelectedDocumentId(documentId);
+    setIsDetailExpanded(true);
+
+    if (window.matchMedia("(max-width: 1279px)").matches) {
+      window.requestAnimationFrame(() => {
+        detailPanelRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
   };
 
   const handleResubmit = async (
@@ -653,7 +674,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   return (
     <div className={shellClass}>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm">
+        <header className="app-panel overflow-hidden rounded-2xl">
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="border-l-4 border-primary px-6 py-7 sm:px-8">
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -698,7 +719,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
           {dashboardStats.map((stat) => (
             <article
               key={stat.label}
-              className={`rounded-lg border px-5 py-4 shadow-2xs ${stat.className}`}
+              className={`rounded-2xl border px-5 py-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${stat.className}`}
             >
               <p className="text-sm font-medium opacity-80">{stat.label}</p>
               <p className="mt-2 text-3xl font-semibold">{stat.value}</p>
@@ -711,7 +732,10 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
           <div className="space-y-6">
-            <section className="rounded-lg border border-border/60 bg-card p-5 shadow-2xs">
+            <section
+              ref={detailPanelRef}
+              className="app-panel rounded-2xl p-5 xl:sticky xl:top-6 xl:z-20 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto"
+            >
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-muted-foreground">
@@ -728,64 +752,79 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                     </p>
                   )}
                 </div>
-                {selectedDocument && (
-                  <Pill className={getStatusTone(selectedDocument.status)}>
-                    {formatDocumentStatus(selectedDocument.status)}
-                  </Pill>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedDocument && (
+                    <Pill className={getStatusTone(selectedDocument.status)}>
+                      {formatDocumentStatus(selectedDocument.status)}
+                    </Pill>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsDetailExpanded((current) => !current)}
+                    aria-expanded={isDetailExpanded}
+                    className="rounded-md border border-border/60 bg-background/80 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                  >
+                    {isDetailExpanded ? "Collapse detail" : "Expand detail"}
+                  </button>
+                </div>
               </div>
 
-              {documentsQuery.isLoading && (
+              {isDetailExpanded && documentsQuery.isLoading && (
                 <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
                   Loading document detail...
                 </p>
               )}
 
-              {!documentsQuery.isLoading && selectedDocument && (
-                <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Priority
-                    </p>
-                    <p className="mt-1 font-medium text-foreground">
-                      {selectedDocument.priority}
-                    </p>
+              {isDetailExpanded &&
+                !documentsQuery.isLoading &&
+                selectedDocument && (
+                  <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        Priority
+                      </p>
+                      <p className="mt-1 font-medium text-foreground">
+                        {selectedDocument.priority}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        Submitted
+                      </p>
+                      <p className="mt-1 font-medium text-foreground">
+                        {formatDate(selectedDocument.createdAt)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        Updated
+                      </p>
+                      <p className="mt-1 font-medium text-foreground">
+                        {formatDate(
+                          selectedDocument.updatedAt ??
+                            selectedDocument.createdAt,
+                        )}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Submitted
-                    </p>
-                    <p className="mt-1 font-medium text-foreground">
-                      {formatDate(selectedDocument.createdAt)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Updated
-                    </p>
-                    <p className="mt-1 font-medium text-foreground">
-                      {formatDate(
-                        selectedDocument.updatedAt ??
-                          selectedDocument.createdAt,
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
+                )}
 
-              {!documentsQuery.isLoading && !selectedDocument && (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Submit a document to start building your history.
-                </p>
-              )}
+              {isDetailExpanded &&
+                !documentsQuery.isLoading &&
+                !selectedDocument && (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    Submit a document to start building your history.
+                  </p>
+                )}
 
-              {selectedDocument?.description && (
+              {isDetailExpanded && selectedDocument?.description && (
                 <div className="mt-4 rounded-md bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
                   {selectedDocument.description}
                 </div>
               )}
 
-              {selectedDocument &&
+              {isDetailExpanded &&
+                selectedDocument &&
                 getDocumentMetadataRows(selectedDocument).length > 0 && (
                   <div className="mt-4 grid gap-3 rounded-md border border-border/60 bg-background/40 p-3 text-sm sm:grid-cols-2">
                     {getDocumentMetadataRows(selectedDocument).map(
@@ -803,57 +842,61 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   </div>
                 )}
 
-              {selectedDocument?.latestVersionNumber != null && (
-                <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  Latest version{" "}
-                  {selectedDocument.latestVersionLabel ??
-                    `v${selectedDocument.latestVersionNumber}`}
-                  {selectedDocument.latestVersionCreatedAt
-                    ? ` · ${formatDate(
-                        selectedDocument.latestVersionCreatedAt,
-                      )}`
-                    : ""}
-                  {selectedDocument.latestVersionChangeNotes
-                    ? ` · ${selectedDocument.latestVersionChangeNotes}`
-                    : ""}
-                </p>
-              )}
-
-              {selectedDocument && selectedApprovalHistory.length > 0 && (
-                <div className="mt-5 space-y-3 border-t border-border/60 pt-4">
-                  <p className="text-xs font-semibold uppercase text-muted-foreground">
-                    Approval history
+              {isDetailExpanded &&
+                selectedDocument?.latestVersionNumber != null && (
+                  <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                    Latest version{" "}
+                    {selectedDocument.latestVersionLabel ??
+                      `v${selectedDocument.latestVersionNumber}`}
+                    {selectedDocument.latestVersionCreatedAt
+                      ? ` · ${formatDate(
+                          selectedDocument.latestVersionCreatedAt,
+                        )}`
+                      : ""}
+                    {selectedDocument.latestVersionChangeNotes
+                      ? ` · ${selectedDocument.latestVersionChangeNotes}`
+                      : ""}
                   </p>
-                  {selectedApprovalHistory.map((item) => (
-                    <div key={item.id} className="flex gap-3 text-sm">
-                      <span
-                        className="mt-2 h-2 w-2 rounded-full bg-primary"
-                        aria-hidden="true"
-                      />
-                      <div className="flex-1 rounded-md bg-muted/40 px-3 py-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold text-foreground">
-                            {item.approverFullName}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(item.createdAt).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="mt-1 font-medium text-primary">
-                          {formatDocumentStatus(item.status)}
-                        </p>
-                        {item.comments && (
-                          <p className="mt-1 text-muted-foreground">
-                            {item.comments}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                )}
 
-              {selectedDocument?.status === "ChangesRequested" &&
+              {isDetailExpanded &&
+                selectedDocument &&
+                selectedApprovalHistory.length > 0 && (
+                  <div className="mt-5 space-y-3 border-t border-border/60 pt-4">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      Approval history
+                    </p>
+                    {selectedApprovalHistory.map((item) => (
+                      <div key={item.id} className="flex gap-3 text-sm">
+                        <span
+                          className="mt-2 h-2 w-2 rounded-full bg-primary"
+                          aria-hidden="true"
+                        />
+                        <div className="flex-1 rounded-md bg-muted/40 px-3 py-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold text-foreground">
+                              {item.approverFullName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(item.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="mt-1 font-medium text-primary">
+                            {formatDocumentStatus(item.status)}
+                          </p>
+                          {item.comments && (
+                            <p className="mt-1 text-muted-foreground">
+                              {item.comments}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              {isDetailExpanded &&
+                selectedDocument?.status === "ChangesRequested" &&
                 (resubmitForm && resubmitDocumentId === selectedDocument.id ? (
                   <form
                     className="mt-5 space-y-4 rounded-lg border border-border/60 bg-background/50 p-4"
@@ -1006,7 +1049,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                 ))}
             </section>
 
-            <section className="rounded-lg border border-border/60 bg-card p-5 shadow-2xs">
+            <section className="app-panel rounded-2xl p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">
@@ -1044,18 +1087,19 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                       key={document.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setSelectedDocumentId(document.id)}
+                      onClick={() => handleSelectDocument(document.id)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
-                          setSelectedDocumentId(document.id);
+                          handleSelectDocument(document.id);
                         }
                       }}
                       aria-label={`Show details for ${document.title}`}
-                      className={`grid cursor-pointer gap-4 rounded-lg border p-4 text-left transition hover:border-primary/30 hover:shadow-sm md:grid-cols-[minmax(0,1fr)_180px] ${
+                      aria-pressed={selectedDocument?.id === document.id}
+                      className={`app-card-interactive grid cursor-pointer gap-4 rounded-xl border p-4 text-left transition hover:border-primary/30 hover:shadow-sm md:grid-cols-[minmax(0,1fr)_180px] ${
                         selectedDocument?.id === document.id
-                          ? "border-primary/50 bg-primary/5"
-                          : "border-border/60 bg-background"
+                          ? "border-primary/60 bg-primary/10 shadow-sm ring-1 ring-primary/20"
+                          : "border-border/60 bg-background hover:bg-primary/[0.03]"
                       }`}
                     >
                       <div className="min-w-0">
@@ -1156,7 +1200,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
           <aside className="xl:sticky xl:top-6 xl:self-start">
             <form
               id="new-document"
-              className="rounded-lg border border-border/60 bg-card p-5 shadow-sm"
+              className="app-panel rounded-2xl p-5"
               onSubmit={handleSubmit}
             >
               <div className="flex flex-col gap-1">
@@ -1430,7 +1474,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   return (
     <div className={shellClass}>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
+        <header className="app-panel overflow-hidden rounded-2xl">
           <div className="border-l-4 border-secondary px-6 py-7 sm:px-8">
             <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Internal workflows
@@ -1472,7 +1516,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
         </header>
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs lg:col-span-2">
+          <div className="app-panel rounded-2xl p-6 lg:col-span-2">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
@@ -1504,9 +1548,9 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
               {filteredQueue.map((item) => (
                 <article
                   key={item.documentId}
-                  className={`flex flex-col gap-4 rounded-lg border px-4 py-4 transition hover:border-primary/30 hover:bg-card/80 sm:flex-row sm:items-center ${
+                  className={`app-card-interactive flex flex-col gap-4 rounded-xl border px-4 py-4 transition hover:border-primary/30 hover:bg-card/80 sm:flex-row sm:items-center ${
                     selectedApproval?.documentId === item.documentId
-                      ? "border-primary/50 bg-primary/5"
+                      ? "border-primary/60 bg-primary/10 shadow-sm ring-1 ring-primary/20"
                       : "border-border/60 bg-background/40"
                   }`}
                 >
@@ -1531,7 +1575,14 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                     <button
                       type="button"
                       onClick={() => handleSelectApproval(item)}
-                      className="rounded-md border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                      aria-pressed={
+                        selectedApproval?.documentId === item.documentId
+                      }
+                      className={`rounded-md border px-3 py-1 text-xs font-semibold transition ${
+                        selectedApproval?.documentId === item.documentId
+                          ? "border-primary/50 bg-primary/10 text-primary shadow-inner"
+                          : "border-border/60 text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                      }`}
                     >
                       Review
                     </button>
@@ -1542,7 +1593,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
           </div>
 
           <div className="space-y-6">
-            <section className="rounded-lg border border-border/60 bg-card p-6 shadow-2xs">
+            <section className="app-panel rounded-2xl p-6">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   Request detail
@@ -1574,7 +1625,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
       {showUsersModal ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-6">
-          <div className="w-full max-w-4xl rounded-2xl border border-border/60 bg-background shadow-2xl">
+          <div className="app-panel w-full max-w-4xl rounded-3xl shadow-2xl">
             <div className="flex items-center justify-between border-b border-border/60 px-6 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
@@ -1618,7 +1669,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   {adminUsersQuery.data.map((user) => (
                     <div
                       key={user.id}
-                      className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+                      className="app-card app-card-interactive flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
                         <p className="text-sm font-semibold text-foreground">

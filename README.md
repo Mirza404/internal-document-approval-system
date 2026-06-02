@@ -35,9 +35,11 @@ Both local password login and Microsoft OAuth use the user's persisted role. New
 
 ### Optional Demo Data
 
-Set `SEED_DEMO_DATA=true` in `InternalDocs/InternalDocs.Api/.env` to seed an idempotent development dataset with documents across the approval workflow and approval history entries. This also adds:
+Set `SEED_DEMO_DATA=true` in `InternalDocs/InternalDocs.Api/.env` to seed an idempotent development dataset with documents across the approval workflow, approval history entries, notifications, and an HR leave-request example. This also adds:
 
 - Approver: `approver@internaldocs.local` / `ApproverPass123!`
+- Reviewer: `reviewer@internaldocs.local` / `ReviewerPass123!`
+- Employee: `sara.hadzic@internaldocs.local` / `DemoPass123!`
 
 The demo records are created only when missing, so restarting the API does not duplicate or overwrite them.
 
