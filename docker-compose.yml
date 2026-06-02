@@ -1,0 +1,71 @@
+# Reproducible local deployment of the InternalDocs stack:
+# PostgreSQL + .NET API + React frontend, each as its own service.
+#
+# Quick start:
+#   cp .env.example .env      # adjust values as needed
+#   docker compose up --build
+#   open http://localhost:5173
+#
+# Teardown:
+#   docker compose down            # stop and remove containers
+#   docker compose down -v         # also drop the database volume
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-internaldocs}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-internaldocs}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./InternalDocs
+      dockerfile: InternalDocs.Api/Dockerfile
+    environment:
+      # Development enables EF migrations + seeding on startup (see Program.cs).
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-internaldocs};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres}"
+      Jwt__Secret: ${JWT_SECRET:-local-dev-jwt-secret-change-me-min-32-chars}
+      Jwt__Issuer: ${JWT_ISSUER:-InternalDocs}
+      Jwt__Audience: ${JWT_AUDIENCE:-InternalDocs}
+      Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-60}
+      # Seed demo documents so the approval workflow has data on first run.
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+    ports:
+      - "${API_PORT:-5210}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Browser calls go to /api on the frontend origin; nginx proxies to the API.
+        VITE_API_BASE_URL: /api
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  db-data:

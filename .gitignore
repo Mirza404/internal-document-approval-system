@@ -19,3 +19,7 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local environment (keep .env.example tracked)
+.env
+.env.local
