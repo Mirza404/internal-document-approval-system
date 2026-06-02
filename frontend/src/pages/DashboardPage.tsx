@@ -29,6 +29,7 @@ import type {
 } from "../api/documents";
 import { getApprovalHistory } from "../api/documents";
 import {
+  useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useNotifications,
 } from "../hooks/useNotifications";
@@ -222,10 +223,12 @@ const NotificationsMenu = () => {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const notificationsQuery = useNotifications();
   const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
   const notifications = notificationsQuery.data ?? [];
-  const unreadCount = notifications.filter(
+  const unreadNotifications = notifications.filter(
     (notification) => !notification.isRead,
-  ).length;
+  );
+  const unreadCount = unreadNotifications.length;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -273,7 +276,7 @@ const NotificationsMenu = () => {
       </button>
 
       {isOpen && (
-        <div className="app-panel absolute right-0 z-30 mt-2 w-80 rounded-2xl shadow-lg">
+        <div className="app-panel absolute right-0 z-50 mt-2 w-80 rounded-2xl shadow-lg">
           <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
             <div>
               <p className="font-semibold text-foreground">Notifications</p>
@@ -282,13 +285,25 @@ const NotificationsMenu = () => {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-3">
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  disabled={markAllRead.isPending}
+                  onClick={() => markAllRead.mutate()}
+                  className="text-xs font-semibold text-primary hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Mark all read
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
           </div>
 
           <div className="max-h-80 space-y-2 overflow-y-auto p-3">
@@ -298,20 +313,16 @@ const NotificationsMenu = () => {
               </p>
             )}
 
-            {!notificationsQuery.isLoading && notifications.length === 0 && (
+            {!notificationsQuery.isLoading && unreadNotifications.length === 0 && (
               <p className="text-xs text-muted-foreground">
-                No notifications yet.
+                No unread notifications.
               </p>
             )}
 
-            {notifications.slice(0, 6).map((notification) => (
+            {unreadNotifications.slice(0, 6).map((notification) => (
               <div
                 key={notification.id}
-                className={`rounded-md border px-3 py-3 text-xs ${
-                  notification.isRead
-                    ? "border-border/60 bg-muted/30 text-muted-foreground"
-                    : "border-primary/20 bg-primary/5 text-foreground"
-                }`}
+                className="rounded-md border border-primary/20 bg-primary/5 px-3 py-3 text-xs text-foreground"
               >
                 <p className="font-semibold">{notification.title}</p>
                 <p className="mt-1">{notification.message}</p>
@@ -321,15 +332,13 @@ const NotificationsMenu = () => {
                     {new Date(notification.createdAt).toLocaleString()}
                   </span>
 
-                  {!notification.isRead && (
-                    <button
-                      type="button"
-                      onClick={() => markRead.mutate(notification.id)}
-                      className="text-[11px] font-semibold text-primary hover:underline"
-                    >
-                      Mark read
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => markRead.mutate(notification.id)}
+                    className="text-[11px] font-semibold text-primary hover:underline"
+                  >
+                    Mark read
+                  </button>
                 </div>
               </div>
             ))}
@@ -674,7 +683,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   return (
     <div className={shellClass}>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="app-panel rounded-2xl">
+        <header className="app-panel relative z-40 rounded-2xl">
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="border-l-4 border-primary px-6 py-7 sm:px-8">
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -1474,7 +1483,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   return (
     <div className={shellClass}>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="app-panel rounded-2xl">
+        <header className="app-panel relative z-40 rounded-2xl">
           <div className="border-l-4 border-secondary px-6 py-7 sm:px-8">
             <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Internal workflows
