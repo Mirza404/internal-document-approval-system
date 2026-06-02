@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import axios from "axios";
 import type { AuthUser } from "../auth/authStorage";
+import DocumentPreview from "../components/documents/DocumentPreview";
 import Pill from "../components/ui/Pill";
 import { useDocumentTypes } from "../hooks/useDocumentCatalog";
 import {
@@ -106,23 +107,6 @@ const getDocumentDateValue = (document: Document) =>
 
 const getStatusTone = (status: string) =>
   statusClasses[status] ?? "bg-muted text-muted-foreground";
-
-const getDocumentMetadataRows = (document: Document) =>
-  [
-    document.leaveType ? ["Leave type", document.leaveType] : null,
-    document.leaveStartDate
-      ? ["Leave start", formatDate(document.leaveStartDate)]
-      : null,
-    document.leaveEndDate
-      ? ["Leave end", formatDate(document.leaveEndDate)]
-      : null,
-    document.amount != null ? ["Amount", String(document.amount)] : null,
-    document.budgetCode ? ["Payment reference", document.budgetCode] : null,
-    document.counterparty ? ["Organization", document.counterparty] : null,
-    document.attachmentNote
-      ? ["Supporting note", document.attachmentNote]
-      : null,
-  ].filter(Boolean) as [string, string][];
 
 const getErrorMessage = (error: unknown) => {
   if (axios.isAxiosError(error)) {
@@ -835,22 +819,25 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
               {isDetailExpanded &&
                 selectedDocument &&
-                getDocumentMetadataRows(selectedDocument).length > 0 && (
-                  <div className="mt-4 grid gap-3 rounded-md border border-border/60 bg-background/40 p-3 text-sm sm:grid-cols-2">
-                    {getDocumentMetadataRows(selectedDocument).map(
-                      ([label, value]) => (
-                        <div key={label}>
-                          <p className="text-xs font-semibold uppercase text-muted-foreground">
-                            {label}
-                          </p>
-                          <p className="mt-1 font-medium text-foreground">
-                            {value}
-                          </p>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
+                (() => {
+                  const documentType = documentTypeOptions.find(
+                    (type) => type.id === selectedDocument.documentTypeId,
+                  );
+
+                  return (
+                    <div className="mt-4">
+                      <DocumentPreview
+                        source={{
+                          ...selectedDocument,
+                          documentTypeDescription: documentType?.description,
+                          requesterFullName: authUser.fullName,
+                          requesterEmail: authUser.email,
+                        }}
+                        title="Saved submission"
+                      />
+                    </div>
+                  );
+                })()}
 
               {isDetailExpanded &&
                 selectedDocument?.latestVersionNumber != null && (
@@ -1285,6 +1272,20 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                 {renderCategoryFields(form, updateField, selectedType)}
               </div>
 
+              <div className="mt-5">
+                <DocumentPreview
+                  source={{
+                    ...form,
+                    documentTypeName: selectedType?.name,
+                    documentTypeDescription: selectedType?.description,
+                    documentCategoryName: selectedType?.categoryName,
+                    requesterFullName: authUser.fullName,
+                    requesterEmail: authUser.email,
+                  }}
+                  title="Submission draft"
+                />
+              </div>
+
               {(formError || formMessage) && (
                 <p
                   className={`mt-4 rounded-md px-3 py-2 text-sm ${
@@ -1352,6 +1353,15 @@ const ApprovalDetail = ({
           </div>
         ))}
       </div>
+
+      <DocumentPreview
+        source={{
+          ...item,
+          requesterFullName: item.creatorFullName,
+          requesterEmail: item.creatorEmail,
+        }}
+        title="Saved submission"
+      />
 
       <label className="space-y-2">
         <span className={labelClass}>Reviewer notes</span>
