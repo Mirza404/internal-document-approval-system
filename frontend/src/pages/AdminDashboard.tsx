@@ -251,12 +251,11 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
                   </p>
                 )}
 
-                {!adminUsersQuery.isLoading &&
-                  adminUsersQuery.isError && (
-                    <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {getErrorMessage(adminUsersQuery.error)}
-                    </p>
-                  )}
+                {!adminUsersQuery.isLoading && adminUsersQuery.isError && (
+                  <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {getErrorMessage(adminUsersQuery.error)}
+                  </p>
+                )}
 
                 {!adminUsersQuery.isLoading &&
                   (adminUsersQuery.data?.length ?? 0) === 0 && (
@@ -430,13 +429,11 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
                           <button
                             type="submit"
                             disabled={
-                              createDocType.isPending ||
-                              updateDocType.isPending
+                              createDocType.isPending || updateDocType.isPending
                             }
                             className="flex-1 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-2xs transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {createDocType.isPending ||
-                            updateDocType.isPending
+                            {createDocType.isPending || updateDocType.isPending
                               ? "Saving..."
                               : editingTypeId
                                 ? "Update"
