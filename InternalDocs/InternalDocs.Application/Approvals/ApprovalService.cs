@@ -71,7 +71,8 @@ public sealed class ApprovalService(
             return Validation("ApproverId is required.");
         }
 
-        if (!await users.ExistsAsync(command.ApproverId, cancellationToken))
+        var approver = await users.GetByIdAsync(command.ApproverId, cancellationToken);
+        if (approver is null)
         {
             return Validation("ApproverId does not exist.");
         }
@@ -86,6 +87,7 @@ public sealed class ApprovalService(
             Id = Guid.NewGuid(),
             DocumentId = command.DocumentId,
             ApprovedByUserId = command.ApproverId,
+            ApprovedByUser = approver,
             Action = status,
             Comments = command.Comments?.Trim(),
             CreatedAt = DateTime.UtcNow
@@ -163,7 +165,8 @@ public sealed class ApprovalService(
             return Validation("ApproverId is required.");
         }
 
-        if (!await users.ExistsAsync(command.ApproverId, cancellationToken))
+        var approver = await users.GetByIdAsync(command.ApproverId, cancellationToken);
+        if (approver is null)
         {
             return Validation("ApproverId does not exist.");
         }
@@ -203,6 +206,7 @@ public sealed class ApprovalService(
             Id = Guid.NewGuid(),
             DocumentId = document.Id,
             ApprovedByUserId = command.ApproverId,
+            ApprovedByUser = approver,
             Action = normalizedAction,
             Comments = command.Comments?.Trim(),
             CreatedAt = now

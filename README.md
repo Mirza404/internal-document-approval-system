@@ -20,9 +20,26 @@ The API uses JWT bearer authentication. Configure these settings in `InternalDoc
 Seeded admins can promote users to `Approver` (or `Admin`) and activate/deactivate accounts.
 To create the first approver in development:
 
-1. Sign in as the seeded admin (`admin@internaldocs.local`).
+1. Sign in as the seeded admin (`admin@internaldocs.local` / `AdminPass123!`).
 2. Open **Manage users** in the admin dashboard.
 3. Find the employee account and change the role to `Approver`.
+
+### Local Development Accounts
+
+Development startup seeds two password-login accounts:
+
+- Admin: `admin@internaldocs.local` / `AdminPass123!`
+- Employee: `employee@internaldocs.local` / `EmployeePass123!`
+
+Both local password login and Microsoft OAuth use the user's persisted role. New Microsoft/OAuth users are created as `Employee`; elevated access should be assigned from the seeded admin account.
+
+### Optional Demo Data
+
+Set `SEED_DEMO_DATA=true` in `InternalDocs/InternalDocs.Api/.env` to seed an idempotent development dataset with documents across the approval workflow and approval history entries. This also adds:
+
+- Approver: `approver@internaldocs.local` / `ApproverPass123!`
+
+The demo records are created only when missing, so restarting the API does not duplicate or overwrite them.
 
 ## Approval Workflow Decision
 

@@ -20,4 +20,8 @@ public interface IAuthService
     Task<ServiceResult<AuthDto>> LocalLoginAsync(
         LocalLoginCommand command,
         CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<AuthDto>> LocalRegisterAsync(
+        LocalRegisterCommand command,
+        CancellationToken cancellationToken = default);
 }

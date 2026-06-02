@@ -337,6 +337,43 @@ public sealed class ApplicationServiceTests
         Assert.Equal("Pending", approvalRepository.Approval.Action);
     }
 
+    [Fact]
+    public async Task DecideApprovalAsync_ReturnsApproverNameForNewAction()
+    {
+        var documentId = Guid.NewGuid();
+        var approver = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = "approver@ius.edu.ba",
+            FullName = "Approval User"
+        };
+        var documentRepository = new FakeDocumentRepository
+        {
+            Document = new Document
+            {
+                Id = documentId,
+                Status = "PendingApproval"
+            }
+        };
+        var approvalRepository = new FakeApprovalActionRepository();
+        var service = new ApprovalService(
+            approvalRepository,
+            documentRepository,
+            new FakeUserRepository(approver),
+            NotificationService);
+
+        var result = await service.DecideAsync(
+            new ApprovalDecisionCommand(documentId, approver.Id, "Looks good"),
+            "approve",
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Approval User", result.Value?.ApproverFullName);
+        Assert.Equal("approved", result.Value?.Status);
+        Assert.Equal("Approved", documentRepository.Document.Status);
+        Assert.Same(approver, approvalRepository.Approval.ApprovedByUser);
+    }
+
     private sealed class FakeDocumentRepository : IDocumentRepository
     {
         public Document? Document { get; set; }
@@ -381,7 +418,7 @@ public sealed class ApplicationServiceTests
 
     private sealed class FakeApprovalActionRepository : IApprovalActionRepository
     {
-        public ApprovalAction Approval { get; init; } = new();
+        public ApprovalAction Approval { get; set; } = new();
 
         public Task<List<ApprovalAction>> GetAllAsync(CancellationToken cancellationToken)
         {
@@ -395,6 +432,7 @@ public sealed class ApplicationServiceTests
 
         public void Add(ApprovalAction approvalAction)
         {
+            Approval = approvalAction;
         }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)
@@ -480,17 +518,24 @@ public sealed class ApplicationServiceTests
     private sealed class FakeUserRepository : IUserRepository
     {
         private readonly bool userExists;
+        private readonly User? user;
 
         public FakeUserRepository(bool userExists = false)
         {
             this.userExists = userExists;
         }
 
+        public FakeUserRepository(User user)
+        {
+            this.user = user;
+            userExists = true;
+        }
+
         public Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken)
             => Task.FromResult<IReadOnlyList<User>>(new List<User>());
 
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-            => Task.FromResult<User?>(null);
+            => Task.FromResult(user?.Id == id ? user : null);
 
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
             => Task.FromResult(userExists);

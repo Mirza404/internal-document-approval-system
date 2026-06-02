@@ -264,6 +264,52 @@ public sealed class AuthService(
         return ServiceResult<AuthDto>.Success(dto);
     }
 
+    public async Task<ServiceResult<AuthDto>> LocalRegisterAsync(
+        LocalRegisterCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(command.Email) ||
+            string.IsNullOrWhiteSpace(command.FullName) ||
+            string.IsNullOrWhiteSpace(command.Password))
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "Email, full name, and password are required.",
+                ServiceErrorType.Validation);
+        }
+
+        if (!IsAllowedIusEmail(command.Email))
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "Registration is restricted to IUS accounts (@ius.edu.ba).",
+                ServiceErrorType.Validation);
+        }
+
+        var existing = await userRepository.FindByEmailAsync(command.Email, cancellationToken);
+        if (existing is not null)
+        {
+            return ServiceResult<AuthDto>.Failure(
+                "An account with this e-mail address already exists.",
+                ServiceErrorType.Conflict);
+        }
+
+        var newUser = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = command.Email,
+            FullName = command.FullName,
+            PasswordHash = BC.HashPassword(command.Password),
+            MicrosoftObjectId = null,
+            Role = "Employee",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var createdUser = await userRepository.CreateAsync(newUser, cancellationToken);
+        var jwt = tokenService.GenerateJwt(createdUser);
+        var dto = new AuthDto(createdUser.Id, createdUser.Email, createdUser.FullName, createdUser.Role, jwt);
+        return ServiceResult<AuthDto>.Success(dto);
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
