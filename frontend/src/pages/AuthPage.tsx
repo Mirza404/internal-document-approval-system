@@ -2,11 +2,24 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { useIsAuthenticated, useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
-import { localLogin, localRegister, microsoftLogin } from "../api/auth";
+import {
+  localLogin,
+  localRegister,
+  microsoftLogin,
+  microsoftRegister,
+} from "../api/auth";
 import { getGraphAccessToken, graphLoginRequest } from "../auth/msal";
 import { useAuth } from "../hooks/useAuth";
 
 type AuthStatus = "idle" | "loading";
+type MicrosoftAuthIntent = "login" | "register";
+
+const microsoftAuthIntentKey = "microsoftAuthIntent";
+
+const getStoredMicrosoftAuthIntent = (): MicrosoftAuthIntent =>
+  sessionStorage.getItem(microsoftAuthIntentKey) === "register"
+    ? "register"
+    : "login";
 
 const roleRedirect = (role?: string) => {
   switch ((role ?? "").toLowerCase()) {
@@ -88,6 +101,9 @@ const AuthPage = () => {
   const [localPassword, setLocalPassword] = useState("");
   const [showLocalAuth, setShowLocalAuth] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [microsoftAuthIntent, setMicrosoftAuthIntent] =
+    useState<MicrosoftAuthIntent>(getStoredMicrosoftAuthIntent);
+  const [microsoftAuthAttempt, setMicrosoftAuthAttempt] = useState(0);
   const isProcessingRef = useRef(false);
   const failedAccountRef = useRef<string | null>(null);
 
@@ -136,7 +152,10 @@ const AuthPage = () => {
           throw new Error("Microsoft access token not available.");
         }
 
-        const response = await microsoftLogin(microsoftToken);
+        const response =
+          microsoftAuthIntent === "register"
+            ? await microsoftRegister(microsoftToken)
+            : await microsoftLogin(microsoftToken);
 
         setSession(response.accessToken, {
           userId: response.userId,
@@ -146,8 +165,10 @@ const AuthPage = () => {
         });
 
         failedAccountRef.current = null;
+        sessionStorage.removeItem(microsoftAuthIntentKey);
         navigate(roleRedirect(response.role), { replace: true });
       } catch (authError: unknown) {
+        sessionStorage.removeItem(microsoftAuthIntentKey);
         setError(getAuthErrorMessage(authError));
       } finally {
         setStatus("idle");
@@ -161,18 +182,25 @@ const AuthPage = () => {
     inProgress,
     instance,
     isMicrosoftAuthenticated,
+    microsoftAuthAttempt,
+    microsoftAuthIntent,
     navigate,
     setSession,
   ]);
 
-  const handleMicrosoftAuth = () => {
+  const handleMicrosoftAuth = (intent: MicrosoftAuthIntent) => {
     failedAccountRef.current = null;
+    sessionStorage.setItem(microsoftAuthIntentKey, intent);
+    setMicrosoftAuthIntent(intent);
+    setMicrosoftAuthAttempt((attempt) => attempt + 1);
     setStatus("loading");
     setError(null);
-    void instance.loginRedirect({
-      ...graphLoginRequest,
-      prompt: "select_account",
-    });
+    if (!isMicrosoftAuthenticated) {
+      void instance.loginRedirect({
+        ...graphLoginRequest,
+        prompt: "select_account",
+      });
+    }
   };
 
   const handleLocalLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -279,11 +307,19 @@ const AuthPage = () => {
           <div className="mt-8 space-y-4">
             <button
               type="button"
-              onClick={handleMicrosoftAuth}
+              onClick={() => handleMicrosoftAuth("login")}
               disabled={inProgress !== InteractionStatus.None}
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-70"
             >
               Sign in with Microsoft
+            </button>
+            <button
+              type="button"
+              onClick={() => handleMicrosoftAuth("register")}
+              disabled={inProgress !== InteractionStatus.None}
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-primary/40 bg-background px-6 text-sm font-semibold text-primary shadow-2xs transition hover:border-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              Create account with Microsoft
             </button>
           </div>
 
