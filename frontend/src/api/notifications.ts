@@ -14,3 +14,6 @@ export const getNotifications = () =>
 
 export const markNotificationRead = (id: string) =>
   apiClient.post(`/notifications/${id}/read`);
+
+export const markAllNotificationsRead = () =>
+  apiClient.post("/notifications/read-all");

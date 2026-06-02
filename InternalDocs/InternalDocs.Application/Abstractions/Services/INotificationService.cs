@@ -14,6 +14,10 @@ public interface INotificationService
         Guid userId,
         CancellationToken cancellationToken);
 
+    Task MarkAllAsReadAsync(
+        Guid userId,
+        CancellationToken cancellationToken);
+
     Task NotifyUserAsync(
         Guid userId,
         string title,

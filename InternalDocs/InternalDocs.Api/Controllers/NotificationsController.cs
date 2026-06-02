@@ -59,4 +59,22 @@ public sealed class NotificationsController(
             ? NotFound(result.Error)
             : BadRequest(result.Error);
     }
+
+    [HttpPost("read-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> MarkAllAsRead(
+        CancellationToken cancellationToken)
+    {
+        var userId = User.GetUserId();
+        if (userId is null)
+        {
+            return Unauthorized();
+        }
+
+        await notificationService.MarkAllAsReadAsync(
+            userId.Value,
+            cancellationToken);
+
+        return NoContent();
+    }
 }

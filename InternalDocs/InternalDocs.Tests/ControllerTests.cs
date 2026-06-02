@@ -29,6 +29,7 @@ public sealed class ControllerTests
     [InlineData(typeof(DocumentCatalogController), nameof(DocumentCatalogController.CreateDocumentType), "POST", "document-types")]
     [InlineData(typeof(DocumentCatalogController), nameof(DocumentCatalogController.UpdateDocumentType), "PUT", "document-types/{id:guid}")]
     [InlineData(typeof(DocumentCatalogController), nameof(DocumentCatalogController.DeleteDocumentType), "DELETE", "document-types/{id:guid}")]
+    [InlineData(typeof(NotificationsController), nameof(NotificationsController.MarkAllAsRead), "POST", "read-all")]
     public void ChecklistEndpoint_UsesExpectedHttpMapping(
         Type controllerType,
         string actionName,
@@ -56,6 +57,7 @@ public sealed class ControllerTests
     [InlineData(typeof(DocumentsController))]
     [InlineData(typeof(ApprovalsController))]
     [InlineData(typeof(DocumentCatalogController))]
+    [InlineData(typeof(NotificationsController))]
     public void ProtectedController_RequiresAuthenticatedUser(Type controllerType)
     {
         var authorize = Assert.Single(controllerType.GetCustomAttributes<AuthorizeAttribute>());
@@ -99,6 +101,7 @@ public sealed class ControllerTests
     [InlineData(typeof(DocumentCatalogController), nameof(DocumentCatalogController.CreateDocumentType), 201, 400)]
     [InlineData(typeof(DocumentCatalogController), nameof(DocumentCatalogController.UpdateDocumentType), 200, 400, 404)]
     [InlineData(typeof(DocumentCatalogController), nameof(DocumentCatalogController.DeleteDocumentType), 204, 400, 404)]
+    [InlineData(typeof(NotificationsController), nameof(NotificationsController.MarkAllAsRead), 204)]
     public void ChecklistEndpoint_DeclaresExpectedResponseStatuses(
         Type controllerType,
         string actionName,

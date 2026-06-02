@@ -41,6 +41,20 @@ public sealed class NotificationRepository(AppDbContext dbContext)
         dbContext.Notifications.AddRange(notifications);
     }
 
+    public async Task MarkAllAsReadAsync(
+        Guid userId,
+        DateTime readAt,
+        CancellationToken cancellationToken)
+    {
+        await dbContext.Notifications
+            .Where(notification => notification.UserId == userId && !notification.IsRead)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(notification => notification.IsRead, true)
+                    .SetProperty(notification => notification.ReadAt, readAt),
+                cancellationToken);
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         await dbContext.SaveChangesAsync(cancellationToken);

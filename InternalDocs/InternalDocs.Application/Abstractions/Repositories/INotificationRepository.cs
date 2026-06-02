@@ -17,5 +17,10 @@ public interface INotificationRepository
 
     void AddRange(IEnumerable<Notification> notifications);
 
+    Task MarkAllAsReadAsync(
+        Guid userId,
+        DateTime readAt,
+        CancellationToken cancellationToken);
+
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -45,6 +45,16 @@ public sealed class NotificationService(INotificationRepository notifications)
             NotificationDto.FromEntity(notification));
     }
 
+    public async Task MarkAllAsReadAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        await notifications.MarkAllAsReadAsync(
+            userId,
+            DateTime.UtcNow,
+            cancellationToken);
+    }
+
     public async Task NotifyUserAsync(
         Guid userId,
         string title,
