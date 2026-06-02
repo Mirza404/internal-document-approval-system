@@ -1,4 +1,6 @@
 import { useState, useMemo, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+
 import axios from "axios";
 import type { AuthUser } from "../auth/authStorage";
 import Pill from "../components/ui/Pill";
@@ -53,6 +55,8 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
   const [activeTab, setActiveTab] = useState<"users" | "document-types">(
     "users",
   );
+
+  const navigate = useNavigate();
   const [form, setForm] = useState<DocumentTypeFormState>(initialFormState);
   const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
@@ -173,26 +177,38 @@ const AdminDashboard = ({ authUser, onLogout }: AdminDashboardProps) => {
           <p className="text-xs font-medium uppercase tracking-[0.35em] text-muted-foreground">
             Administration
           </p>
+
           <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
               <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">
                 Admin Management
               </h1>
+
               <p className="max-w-2xl text-base text-muted-foreground">
                 Manage users and document types to keep your document approval
                 workflow running smoothly.
               </p>
             </div>
+
             <div className="flex flex-wrap gap-3">
               <div className="rounded-md border border-border/60 bg-background/70 px-4 py-2 text-sm font-medium text-foreground/80">
                 {authUser.fullName} · {authUser.role}
               </div>
+
               <button
                 type="button"
                 onClick={onLogout}
                 className="rounded-md border border-border/60 bg-background/80 px-5 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
               >
                 Sign out
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/approvals")}
+                className="rounded-md border border-border/60 bg-card px-5 py-2 text-sm font-semibold text-foreground/70 transition hover:border-primary/40 hover:text-foreground"
+              >
+                Open approval queue
               </button>
             </div>
           </div>

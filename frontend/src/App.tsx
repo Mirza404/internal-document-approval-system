@@ -11,9 +11,9 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const roleRedirect = (role?: string) => {
   switch ((role ?? "").toLowerCase()) {
     case "admin":
-      return "/admin";
+      return "/approvals";
     case "approver":
-      return "/reviews";
+      return "/approvals";
     default:
       return "/dashboard";
   }
@@ -79,9 +79,9 @@ function App() {
           }
         />
         <Route
-          path="/reviews"
+          path="/approvals"
           element={
-            <ProtectedRoute roles={["Approver"]}>
+            <ProtectedRoute roles={["Approver", "Admin"]}>
               {dashboardElement}
             </ProtectedRoute>
           }
