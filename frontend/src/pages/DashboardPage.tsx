@@ -775,43 +775,47 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                 </p>
               )}
 
-              {isDetailExpanded && !documentsQuery.isLoading && selectedDocument && (
-                <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Priority
-                    </p>
-                    <p className="mt-1 font-medium text-foreground">
-                      {selectedDocument.priority}
-                    </p>
+              {isDetailExpanded &&
+                !documentsQuery.isLoading &&
+                selectedDocument && (
+                  <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        Priority
+                      </p>
+                      <p className="mt-1 font-medium text-foreground">
+                        {selectedDocument.priority}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        Submitted
+                      </p>
+                      <p className="mt-1 font-medium text-foreground">
+                        {formatDate(selectedDocument.createdAt)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-muted-foreground">
+                        Updated
+                      </p>
+                      <p className="mt-1 font-medium text-foreground">
+                        {formatDate(
+                          selectedDocument.updatedAt ??
+                            selectedDocument.createdAt,
+                        )}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Submitted
-                    </p>
-                    <p className="mt-1 font-medium text-foreground">
-                      {formatDate(selectedDocument.createdAt)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Updated
-                    </p>
-                    <p className="mt-1 font-medium text-foreground">
-                      {formatDate(
-                        selectedDocument.updatedAt ??
-                          selectedDocument.createdAt,
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
+                )}
 
-              {isDetailExpanded && !documentsQuery.isLoading && !selectedDocument && (
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Submit a document to start building your history.
-                </p>
-              )}
+              {isDetailExpanded &&
+                !documentsQuery.isLoading &&
+                !selectedDocument && (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    Submit a document to start building your history.
+                  </p>
+                )}
 
               {isDetailExpanded && selectedDocument?.description && (
                 <div className="mt-4 rounded-md bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
@@ -840,56 +844,56 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
               {isDetailExpanded &&
                 selectedDocument?.latestVersionNumber != null && (
-                <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  Latest version{" "}
-                  {selectedDocument.latestVersionLabel ??
-                    `v${selectedDocument.latestVersionNumber}`}
-                  {selectedDocument.latestVersionCreatedAt
-                    ? ` · ${formatDate(
-                        selectedDocument.latestVersionCreatedAt,
-                      )}`
-                    : ""}
-                  {selectedDocument.latestVersionChangeNotes
-                    ? ` · ${selectedDocument.latestVersionChangeNotes}`
-                    : ""}
-                </p>
-              )}
+                  <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                    Latest version{" "}
+                    {selectedDocument.latestVersionLabel ??
+                      `v${selectedDocument.latestVersionNumber}`}
+                    {selectedDocument.latestVersionCreatedAt
+                      ? ` · ${formatDate(
+                          selectedDocument.latestVersionCreatedAt,
+                        )}`
+                      : ""}
+                    {selectedDocument.latestVersionChangeNotes
+                      ? ` · ${selectedDocument.latestVersionChangeNotes}`
+                      : ""}
+                  </p>
+                )}
 
               {isDetailExpanded &&
                 selectedDocument &&
                 selectedApprovalHistory.length > 0 && (
-                <div className="mt-5 space-y-3 border-t border-border/60 pt-4">
-                  <p className="text-xs font-semibold uppercase text-muted-foreground">
-                    Approval history
-                  </p>
-                  {selectedApprovalHistory.map((item) => (
-                    <div key={item.id} className="flex gap-3 text-sm">
-                      <span
-                        className="mt-2 h-2 w-2 rounded-full bg-primary"
-                        aria-hidden="true"
-                      />
-                      <div className="flex-1 rounded-md bg-muted/40 px-3 py-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold text-foreground">
-                            {item.approverFullName}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(item.createdAt).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="mt-1 font-medium text-primary">
-                          {formatDocumentStatus(item.status)}
-                        </p>
-                        {item.comments && (
-                          <p className="mt-1 text-muted-foreground">
-                            {item.comments}
+                  <div className="mt-5 space-y-3 border-t border-border/60 pt-4">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">
+                      Approval history
+                    </p>
+                    {selectedApprovalHistory.map((item) => (
+                      <div key={item.id} className="flex gap-3 text-sm">
+                        <span
+                          className="mt-2 h-2 w-2 rounded-full bg-primary"
+                          aria-hidden="true"
+                        />
+                        <div className="flex-1 rounded-md bg-muted/40 px-3 py-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold text-foreground">
+                              {item.approverFullName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(item.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="mt-1 font-medium text-primary">
+                            {formatDocumentStatus(item.status)}
                           </p>
-                        )}
+                          {item.comments && (
+                            <p className="mt-1 text-muted-foreground">
+                              {item.comments}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
               {isDetailExpanded &&
                 selectedDocument?.status === "ChangesRequested" &&
