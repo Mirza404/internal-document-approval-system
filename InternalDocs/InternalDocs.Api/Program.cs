@@ -131,6 +131,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+// Unauthenticated liveness probe used by container healthchecks.
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+
 app.Run();
 
 static void LoadLocalEnvFile()
