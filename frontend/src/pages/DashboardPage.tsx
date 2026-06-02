@@ -653,7 +653,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   return (
     <div className={shellClass}>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-sm">
+        <header className="rounded-lg border border-border/70 bg-card shadow-sm">
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_340px]">
             <div className="border-l-4 border-primary px-6 py-7 sm:px-8">
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -1430,7 +1430,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   return (
     <div className={shellClass}>
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
+        <header className="rounded-lg border border-border/60 bg-card shadow-sm">
           <div className="border-l-4 border-secondary px-6 py-7 sm:px-8">
             <p className="text-xs font-semibold uppercase tracking-wide text-secondary">
               Internal workflows
@@ -1445,15 +1445,18 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   movement visible from one operational workspace.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <NotificationsMenu />
-                <div className="rounded-md border border-border/60 bg-accent/45 px-4 py-2 text-sm font-medium text-foreground/80">
-                  {authUser.fullName} · {authUser.role}
+                <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-accent/45 px-4 py-2 text-sm font-medium text-foreground/80">
+                  <span>{authUser.fullName}</span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                    Role: {authUser.role}
+                  </span>
                 </div>
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="rounded-md border border-border/60 bg-background/80 px-5 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
+                  className="whitespace-nowrap rounded-md border border-border/60 bg-background/80 px-5 py-2 text-sm font-semibold text-foreground/80 transition hover:border-primary/40 hover:text-foreground"
                 >
                   Sign out
                 </button>
@@ -1461,7 +1464,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
                   <button
                     type="button"
                     onClick={() => setShowUsersModal(true)}
-                    className="rounded-md border border-border/60 bg-card px-5 py-2 text-sm font-semibold text-foreground/70 transition hover:border-primary/40 hover:text-foreground"
+                    className="whitespace-nowrap rounded-md border border-border/60 bg-card px-5 py-2 text-sm font-semibold text-foreground/70 transition hover:border-primary/40 hover:text-foreground"
                   >
                     Manage users
                   </button>
