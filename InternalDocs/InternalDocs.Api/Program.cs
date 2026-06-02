@@ -112,6 +112,14 @@ if (app.Environment.IsDevelopment())
     await dbContext.Database.MigrateAsync();
     await DatabaseSeeder.SeedLocalUsersAsync(dbContext);
     await DatabaseSeeder.SeedDocumentTypesAsync(dbContext);
+
+    if (string.Equals(
+        Environment.GetEnvironmentVariable("SEED_DEMO_DATA"),
+        "true",
+        StringComparison.OrdinalIgnoreCase))
+    {
+        await DatabaseSeeder.SeedDemoDataAsync(dbContext);
+    }
 }
 
 if (!app.Environment.IsDevelopment())
