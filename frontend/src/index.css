@@ -251,6 +251,28 @@
   }
 }
 
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .document-preview.print-target,
+  .document-preview.print-target * {
+    visibility: visible;
+  }
+
+  .document-preview.print-target {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
+
 @layer components {
   .app-shell button:not(:disabled),
   .app-shell a[href],
