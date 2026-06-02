@@ -55,7 +55,7 @@ public sealed class DocumentApprovalFlowTests
 
         // Assert
         Assert.True(result.Succeeded);
-        Assert.Equal("approved", result.Value.Status);
+        Assert.Equal("approved", result.Value!.Status);
         Assert.Equal("Approved", documentRepository.Document.Status);
         Assert.NotNull(documentRepository.Document.ApprovedAt);
         Assert.NotNull(approvalRepository.Approval);
@@ -98,7 +98,7 @@ public sealed class DocumentApprovalFlowTests
 
         // Assert
         Assert.True(result.Succeeded);
-        Assert.Equal("rejected", result.Value.Status);
+        Assert.Equal("rejected", result.Value!.Status);
         Assert.Equal("Rejected", documentRepository.Document.Status);
         Assert.Null(documentRepository.Document.ApprovedAt);
         Assert.NotNull(approvalRepository.Approval);
@@ -141,7 +141,7 @@ public sealed class DocumentApprovalFlowTests
 
         // Assert
         Assert.True(result.Succeeded);
-        Assert.Equal("changesrequested", result.Value.Status);
+        Assert.Equal("changesrequested", result.Value!.Status);
         Assert.Equal("ChangesRequested", documentRepository.Document.Status);
         Assert.Null(documentRepository.Document.ApprovedAt);
         Assert.NotNull(approvalRepository.Approval);
@@ -362,6 +362,13 @@ public sealed class DocumentApprovalFlowTests
     private sealed class FakeUserRepository : IUserRepository
     {
         private readonly bool userExists;
+        private readonly User user = new()
+        {
+            Id = ApproverId,
+            Email = "approver@ius.edu.ba",
+            FullName = "Test Approver",
+            Role = "Approver"
+        };
 
         public FakeUserRepository(bool userExists = false)
         {
@@ -372,7 +379,7 @@ public sealed class DocumentApprovalFlowTests
             => Task.FromResult<IReadOnlyList<User>>(new List<User>());
 
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
-            => Task.FromResult<User?>(null);
+            => Task.FromResult(userExists && id == user.Id ? user : null);
 
         public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken)
             => Task.FromResult(userExists);
