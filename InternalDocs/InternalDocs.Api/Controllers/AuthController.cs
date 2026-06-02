@@ -172,4 +172,37 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
 
         return Ok(AuthResponse.FromDto(result.Value));
     }
+
+    [HttpPost("local/register")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<AuthResponse>> LocalRegister(
+        [FromBody] LocalRegisterRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email) ||
+            string.IsNullOrWhiteSpace(request.FullName) ||
+            string.IsNullOrWhiteSpace(request.Password))
+        {
+            return BadRequest("Email, full name, and password are required.");
+        }
+
+        var command = new LocalRegisterCommand(request.Email, request.FullName, request.Password);
+        var result = await authService.LocalRegisterAsync(command, cancellationToken);
+
+        if (!result.Succeeded || result.Value is null)
+        {
+            return result.ErrorType switch
+            {
+                ServiceErrorType.Conflict => Conflict(result.Error),
+                ServiceErrorType.Validation => Unauthorized(result.Error),
+                _ => BadRequest(result.Error)
+            };
+        }
+
+        var response = AuthResponse.FromDto(result.Value);
+        return CreatedAtAction(nameof(LocalRegister), response);
+    }
 }

@@ -3,9 +3,11 @@ import {
   getApprovals,
   getApproval,
   createApproval,
+  decideApproval,
   updateApproval,
   getPendingApprovals,
   type Approval,
+  type ApprovalDecisionRequest,
   type PendingApprovalItem,
 } from "../api/approvals";
 
@@ -52,6 +54,18 @@ export const useUpdateApproval = () => {
       updateApproval(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["approvals"] });
+    },
+  });
+};
+
+export const useApprovalDecision = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (request: ApprovalDecisionRequest) => decideApproval(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 };

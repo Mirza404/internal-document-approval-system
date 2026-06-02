@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getDocumentCategories,
   getDocumentTypes,
-  seededDocumentTypes,
   createDocumentCategory,
   updateDocumentCategory,
   deleteDocumentCategory,
@@ -22,7 +21,6 @@ export const useDocumentTypes = () => {
   return useQuery({
     queryKey: ["document-types"],
     queryFn: getDocumentTypes,
-    initialData: seededDocumentTypes,
   });
 };
 
