@@ -1,5 +1,62 @@
 # InternalDocs
 
+## Run with Docker Compose
+
+The whole stack — PostgreSQL, the .NET API, and the React frontend — runs as three
+containers with a single command.
+
+### Prerequisites
+
+- Docker Engine with the Compose plugin (`docker compose version`)
+
+### Start
+
+```bash
+cp .env.example .env        # adjust ports / secrets if needed
+docker compose up --build
+```
+
+On first start the API waits for PostgreSQL to be healthy, applies all EF Core
+migrations, and seeds the login accounts (plus demo documents when
+`SEED_DEMO_DATA=true`). Then open:
+
+- Frontend: http://localhost:5173
+- API + Swagger: http://localhost:5210/swagger
+- API health probe: http://localhost:5210/health
+
+The browser talks only to the frontend origin; nginx reverse-proxies `/api/*`
+to the API container, so there is no CORS configuration to manage.
+
+### Seeded logins
+
+| Role     | Email                          | Password         |
+| -------- | ------------------------------ | ---------------- |
+| Admin    | `admin@internaldocs.local`     | `AdminPass123!`  |
+| Employee | `employee@internaldocs.local`  | `EmployeePass123!` |
+| Approver | `approver@internaldocs.local`  | `ApproverPass123!` |
+
+### Configuration
+
+All settings are environment variables (see `.env.example`):
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `FRONTEND_PORT` / `API_PORT` / `DB_PORT` | Host port mappings | `5173` / `5210` / `5432` |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Database credentials | `postgres` / `postgres` / `internaldocs` |
+| `JWT_SECRET` | JWT signing key (**min 32 chars**) | dev placeholder |
+| `JWT_ISSUER` / `JWT_AUDIENCE` / `JWT_EXPIRY_MINUTES` | JWT claims/lifetime | `InternalDocs` / `InternalDocs` / `60` |
+| `SEED_DEMO_DATA` | Seed demo documents | `true` |
+
+The API connection string is composed from the `POSTGRES_*` values and points at
+the `db` service on the compose network — no manual connection string needed.
+
+### Teardown
+
+```bash
+docker compose down       # stop and remove containers (keeps the database)
+docker compose down -v    # also delete the PostgreSQL volume (fresh DB next time)
+```
+
 ## Backend Auth and Roles
 
 The API uses JWT bearer authentication. Configure these settings in `InternalDocs/InternalDocs.Api/appsettings.json` or `.env`:

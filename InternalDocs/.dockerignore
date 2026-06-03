@@ -1,0 +1,12 @@
+# Build context = InternalDocs/ solution folder.
+**/bin/
+**/obj/
+**/.vs/
+**/*.user
+**/*.suo
+**/*.DotSettings.user
+**/appsettings.*.local.json
+**/.env
+**/Dockerfile
+**/.dockerignore
+InternalDocs.Tests/
