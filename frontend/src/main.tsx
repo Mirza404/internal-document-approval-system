@@ -9,7 +9,7 @@ import { initializeMsal, msalInstance } from "./auth/msal";
 import { AuthProvider } from "./auth/AuthContext.tsx";
 const queryClient = new QueryClient();
 
-void initializeMsal().then(() => {
+const renderApp = () => {
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <MsalProvider instance={msalInstance}>
@@ -23,4 +23,10 @@ void initializeMsal().then(() => {
       </MsalProvider>
     </StrictMode>,
   );
-});
+};
+
+void initializeMsal()
+  .catch((error: unknown) => {
+    console.error("Failed to initialize Microsoft authentication.", error);
+  })
+  .finally(renderApp);

@@ -35,8 +35,17 @@ const DocumentPreview = ({
       return;
     }
 
-    const clearPrintTarget = () => preview.classList.remove("print-target");
-    preview.classList.add("print-target");
+    const printRoot = document.createElement("div");
+    printRoot.className = "document-print-root";
+    printRoot.appendChild(preview.cloneNode(true));
+
+    const clearPrintTarget = () => {
+      document.body.classList.remove("printing-document");
+      printRoot.remove();
+    };
+
+    document.body.appendChild(printRoot);
+    document.body.classList.add("printing-document");
     window.addEventListener("afterprint", clearPrintTarget, { once: true });
     window.print();
   };
@@ -74,13 +83,13 @@ const DocumentPreview = ({
               {section.fields.map(({ label, value }) => (
                 <div
                   key={label}
-                  className="rounded-md border border-border/50 bg-card/70 px-3 py-2"
+                  className="min-w-0 rounded-md border border-border/50 bg-card/70 px-3 py-2"
                 >
                   <dt className="text-[11px] font-semibold uppercase text-muted-foreground">
                     {label}
                   </dt>
                   <dd
-                    className={`mt-1 text-sm ${
+                    className={`mt-1 min-w-0 break-words text-sm [overflow-wrap:anywhere] ${
                       value === previewPlaceholder
                         ? "italic text-muted-foreground"
                         : "font-medium text-foreground"

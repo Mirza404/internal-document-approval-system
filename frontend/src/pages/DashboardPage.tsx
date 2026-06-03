@@ -77,6 +77,13 @@ const statusClasses: Record<string, string> = {
   Rejected: "bg-rose-100 text-rose-700",
 };
 
+const normalizedStatusClasses: Record<string, string> = Object.fromEntries(
+  Object.entries(statusClasses).map(([status, className]) => [
+    status.toLowerCase(),
+    className,
+  ]),
+);
+
 const fieldClass =
   "w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm text-foreground shadow-2xs outline-none transition placeholder:text-muted-foreground focus:border-primary/60 focus:bg-background focus:ring-2 focus:ring-primary/15";
 
@@ -85,12 +92,35 @@ const labelClass =
 const shellClass = "app-shell min-h-screen pb-10";
 
 const statusLabels: Record<string, string> = {
+  Approved: "Approved",
+  Draft: "Draft",
   PendingApproval: "Pending Approval",
+  Rejected: "Rejected",
   UnderReview: "Under Review",
   ChangesRequested: "Changes Requested",
 };
 
-const formatDocumentStatus = (status: string) => statusLabels[status] ?? status;
+const normalizedStatusLabels: Record<string, string> = {
+  ...Object.fromEntries(
+    Object.entries(statusLabels).map(([status, label]) => [
+      status.toLowerCase(),
+      label,
+    ]),
+  ),
+  "request-changes": "Changes Requested",
+  requestchanges: "Changes Requested",
+};
+
+const formatDocumentStatus = (status: string) => {
+  const trimmed = status.trim();
+  const normalized = trimmed.toLowerCase().replace(/[\s_-]/g, "");
+
+  return (
+    normalizedStatusLabels[trimmed.toLowerCase()] ??
+    normalizedStatusLabels[normalized] ??
+    trimmed
+  );
+};
 
 const formatDate = (value?: string | null) => {
   if (!value) {
@@ -106,7 +136,9 @@ const getDocumentDateValue = (document: Document) =>
   new Date(document.updatedAt ?? document.createdAt).getTime();
 
 const getStatusTone = (status: string) =>
-  statusClasses[status] ?? "bg-muted text-muted-foreground";
+  normalizedStatusClasses[status.toLowerCase()] ??
+  normalizedStatusClasses[status.toLowerCase().replace(/[\s_-]/g, "")] ??
+  "bg-muted text-muted-foreground";
 
 const getErrorMessage = (error: unknown) => {
   if (axios.isAxiosError(error)) {
@@ -726,10 +758,7 @@ const EmployeeDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]">
           <div className="space-y-6">
-            <section
-              ref={detailPanelRef}
-              className="app-panel rounded-2xl p-5 xl:sticky xl:top-6 xl:z-20 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto"
-            >
+            <section ref={detailPanelRef} className="app-panel rounded-2xl p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-muted-foreground">
@@ -1354,61 +1383,69 @@ const ApprovalDetail = ({
         ))}
       </div>
 
-      <DocumentPreview
-        source={{
-          ...item,
-          requesterFullName: item.creatorFullName,
-          requesterEmail: item.creatorEmail,
-        }}
-        title="Saved submission"
-      />
-
-      <label className="space-y-2">
-        <span className={labelClass}>Reviewer notes</span>
-        <textarea
-          className={`${fieldClass} min-h-24 resize-y`}
-          value={comments}
-          onChange={(event) => onCommentsChange(event.target.value)}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <DocumentPreview
+          source={{
+            ...item,
+            requesterFullName: item.creatorFullName,
+            requesterEmail: item.creatorEmail,
+          }}
+          title="Saved submission"
         />
-      </label>
 
-      {(error || message) && (
-        <p
-          className={`rounded-md px-3 py-2 text-sm ${
-            error
-              ? "bg-destructive/10 text-destructive"
-              : "bg-emerald-100 text-emerald-700"
-          }`}
-        >
-          {error ?? message}
-        </p>
-      )}
+        <aside className="rounded-xl border border-border/60 bg-card/80 p-4 lg:sticky lg:top-4 lg:self-start">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+            Decision
+          </p>
+          <label className="mt-4 block space-y-2">
+            <span className={labelClass}>Reviewer notes</span>
+            <textarea
+              className={`${fieldClass} min-h-28 resize-y`}
+              value={comments}
+              onChange={(event) => onCommentsChange(event.target.value)}
+              placeholder="Optional comments for the requester"
+            />
+          </label>
 
-      <div className="grid gap-2 sm:grid-cols-3">
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => onDecision("approve")}
-          className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Approve
-        </button>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => onDecision("request-changes")}
-          className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Request changes
-        </button>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => onDecision("reject")}
-          className="rounded-md bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Reject
-        </button>
+          {(error || message) && (
+            <p
+              className={`mt-4 rounded-md px-3 py-2 text-sm ${
+                error
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {error ?? message}
+            </p>
+          )}
+
+          <div className="mt-4 grid gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => onDecision("approve")}
+              className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => onDecision("request-changes")}
+              className="rounded-md bg-amber-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Request changes
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => onDecision("reject")}
+              className="rounded-md bg-rose-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Reject
+            </button>
+          </div>
+        </aside>
       </div>
     </div>
   );
@@ -1417,6 +1454,7 @@ const ApprovalDetail = ({
 const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   const pendingApprovalsQuery = usePendingApprovals();
   const [showUsersModal, setShowUsersModal] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(
     null,
   );
@@ -1436,7 +1474,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
   }, [pendingApprovalsQuery.data]);
   const selectedApproval =
     filteredQueue.find((item) => item.documentId === selectedApprovalId) ??
-    filteredQueue[0];
+    null;
 
   const handleRoleChange = async (id: string, role: string) => {
     setAdminMessage(null);
@@ -1464,8 +1502,20 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
 
   const handleSelectApproval = (item: PendingApprovalItem) => {
     setSelectedApprovalId(item.documentId);
+    setIsReviewModalOpen(true);
     setDecisionComments("");
     setDecisionMessage(null);
+    setDecisionError(null);
+  };
+
+  const handleCloseReview = () => {
+    if (approvalDecision.isPending) {
+      return;
+    }
+
+    setIsReviewModalOpen(false);
+    setSelectedApprovalId(null);
+    setDecisionComments("");
     setDecisionError(null);
   };
 
@@ -1485,6 +1535,7 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
       });
       setDecisionComments("");
       setSelectedApprovalId(null);
+      setIsReviewModalOpen(false);
       setDecisionMessage("Decision saved.");
     } catch (error) {
       setDecisionError(getErrorMessage(error));
@@ -1538,113 +1589,123 @@ const ApprovalDashboard = ({ authUser, onLogout }: DashboardPageProps) => {
           </div>
         </header>
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="app-panel rounded-2xl p-6 lg:col-span-2">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Review queue
-                </p>
-                <h2 className="text-xl font-semibold text-foreground">
-                  Pending approval requests
-                </h2>
-              </div>
-              <span className="rounded-md border border-border/60 px-2 py-1 text-xs font-semibold text-muted-foreground">
-                {filteredQueue.length}
-              </span>
+        <section className="app-panel rounded-2xl p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Review queue
+              </p>
+              <h2 className="text-xl font-semibold text-foreground">
+                Pending approval requests
+              </h2>
             </div>
-
-            <div className="mt-6 space-y-3">
-              {pendingApprovalsQuery.isLoading && (
-                <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  Loading approvals...
-                </p>
-              )}
-
-              {!pendingApprovalsQuery.isLoading &&
-                filteredQueue.length === 0 && (
-                  <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                    No pending approval requests.
-                  </p>
-                )}
-
-              {filteredQueue.map((item) => (
-                <article
-                  key={item.documentId}
-                  className={`app-card-interactive flex flex-col gap-4 rounded-xl border px-4 py-4 transition hover:border-primary/30 hover:bg-card/80 sm:flex-row sm:items-center ${
-                    selectedApproval?.documentId === item.documentId
-                      ? "border-primary/60 bg-primary/10 shadow-sm ring-1 ring-primary/20"
-                      : "border-border/60 bg-background/40"
-                  }`}
-                >
-                  <div className="flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                      {item.documentTypeName}
-                    </p>
-                    <h3 className="mt-1 text-lg font-semibold text-foreground">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Submitted by {item.creatorFullName}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Pill className="bg-sky-100 text-sky-700">
-                      Pending Approval
-                    </Pill>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <p>{formatDate(item.createdAt)}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectApproval(item)}
-                      aria-pressed={
-                        selectedApproval?.documentId === item.documentId
-                      }
-                      className={`rounded-md border px-3 py-1 text-xs font-semibold transition ${
-                        selectedApproval?.documentId === item.documentId
-                          ? "border-primary/50 bg-primary/10 text-primary shadow-inner"
-                          : "border-border/60 text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
-                      }`}
-                    >
-                      Review
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+            <span className="rounded-md border border-border/60 px-2 py-1 text-xs font-semibold text-muted-foreground">
+              {filteredQueue.length}
+            </span>
           </div>
 
-          <div className="space-y-6">
-            <section className="app-panel rounded-2xl p-6">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Request detail
-                </p>
-                <h2 className="mt-1 text-xl font-semibold text-foreground">
-                  {selectedApproval?.title ?? "No request selected"}
-                </h2>
-              </div>
+          <div className="mt-6 space-y-3">
+            {pendingApprovalsQuery.isLoading && (
+              <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                Loading approvals...
+              </p>
+            )}
 
-              {selectedApproval ? (
-                <ApprovalDetail
-                  comments={decisionComments}
-                  error={decisionError}
-                  isPending={approvalDecision.isPending}
-                  item={selectedApproval}
-                  message={decisionMessage}
-                  onCommentsChange={setDecisionComments}
-                  onDecision={handleApprovalDecision}
-                />
-              ) : (
-                <p className="mt-5 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  Pending requests will appear here when they are assigned.
-                </p>
-              )}
-            </section>
+            {decisionMessage ? (
+              <p className="rounded-md bg-emerald-100 px-3 py-2 text-sm text-emerald-700">
+                {decisionMessage}
+              </p>
+            ) : null}
+
+            {!pendingApprovalsQuery.isLoading && filteredQueue.length === 0 && (
+              <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                No pending approval requests.
+              </p>
+            )}
+
+            {filteredQueue.map((item) => (
+              <article
+                key={item.documentId}
+                className={`app-card-interactive flex flex-col gap-4 rounded-xl border px-4 py-4 transition hover:border-primary/30 hover:bg-card/80 sm:flex-row sm:items-center ${
+                  selectedApproval?.documentId === item.documentId
+                    ? "border-primary/60 bg-primary/10 shadow-sm ring-1 ring-primary/20"
+                    : "border-border/60 bg-background/40"
+                }`}
+              >
+                <div className="flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    {item.documentTypeName}
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold text-foreground">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Submitted by {item.creatorFullName}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Pill className="bg-sky-100 text-sky-700">
+                    Pending Approval
+                  </Pill>
+                  <div className="text-right text-sm text-muted-foreground">
+                    <p>{formatDate(item.createdAt)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectApproval(item)}
+                    aria-pressed={
+                      selectedApproval?.documentId === item.documentId
+                    }
+                    className={`rounded-md border px-3 py-1 text-xs font-semibold transition ${
+                      selectedApproval?.documentId === item.documentId
+                        ? "border-primary/50 bg-primary/10 text-primary shadow-inner"
+                        : "border-border/60 text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                    }`}
+                  >
+                    Review request
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       </div>
+
+      {isReviewModalOpen && selectedApproval ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
+          <div className="app-panel flex max-h-[90vh] w-full max-w-6xl flex-col rounded-3xl shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-border/60 px-6 py-4">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+                  Review request
+                </p>
+                <h2 className="mt-1 truncate text-xl font-semibold text-foreground">
+                  {selectedApproval.title}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseReview}
+                disabled={approvalDecision.isPending}
+                className="rounded-full border border-border/60 px-3 py-1 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Close
+              </button>
+            </div>
+            <div className="overflow-auto px-6 pb-6">
+              <ApprovalDetail
+                comments={decisionComments}
+                error={decisionError}
+                isPending={approvalDecision.isPending}
+                item={selectedApproval}
+                message={null}
+                onCommentsChange={setDecisionComments}
+                onDecision={handleApprovalDecision}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {showUsersModal ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4 py-6">

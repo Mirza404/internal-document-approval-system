@@ -8,7 +8,11 @@ import {
   microsoftLogin,
   microsoftRegister,
 } from "../api/auth";
-import { getGraphAccessToken, graphLoginRequest } from "../auth/msal";
+import {
+  getGraphAccessToken,
+  graphLoginRequest,
+  isMicrosoftAuthConfigured,
+} from "../auth/msal";
 import { useAuth } from "../hooks/useAuth";
 
 type AuthStatus = "idle" | "loading";
@@ -190,6 +194,14 @@ const AuthPage = () => {
   ]);
 
   const handleMicrosoftAuth = (intent: MicrosoftAuthIntent) => {
+    if (!isMicrosoftAuthConfigured) {
+      setError(
+        "Microsoft sign-in is not configured for this local build. Use email and password, or set the Microsoft Vite environment variables.",
+      );
+      setShowLocalAuth(true);
+      return;
+    }
+
     failedAccountRef.current = null;
     sessionStorage.setItem(microsoftAuthIntentKey, intent);
     setMicrosoftAuthIntent(intent);

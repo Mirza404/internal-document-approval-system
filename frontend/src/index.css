@@ -251,21 +251,39 @@
   }
 }
 
+.document-print-root {
+  display: none;
+}
+
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    margin: 0.5in;
   }
 
-  .document-preview.print-target,
-  .document-preview.print-target * {
-    visibility: visible;
+  html,
+  body {
+    min-height: 0 !important;
+    background: white !important;
   }
 
-  .document-preview.print-target {
-    position: absolute;
-    inset: 0;
-    border: 0;
-    box-shadow: none;
+  body.printing-document > :not(.document-print-root) {
+    display: none !important;
+  }
+
+  .document-print-root {
+    display: block !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  .document-print-root .document-preview {
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
+    break-before: avoid !important;
+    page-break-before: avoid !important;
   }
 
   .no-print {

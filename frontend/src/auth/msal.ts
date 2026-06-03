@@ -13,14 +13,21 @@ const redirectUri =
   import.meta.env.VITE_MICROSOFT_REDIRECT_URI || window.location.origin;
 const apiScope = import.meta.env.VITE_MICROSOFT_API_SCOPE;
 
-if (!clientId || !tenantId || !apiScope) {
-  throw new Error(
-    "Microsoft sign-in is not configured. Set VITE_MICROSOFT_CLIENT_ID, VITE_MICROSOFT_TENANT_ID, and VITE_MICROSOFT_API_SCOPE.",
-  );
-}
+export const isMicrosoftAuthConfigured = Boolean(
+  clientId && tenantId && apiScope,
+);
+
+const microsoftConfigError =
+  "Microsoft sign-in is not configured. Set VITE_MICROSOFT_CLIENT_ID, VITE_MICROSOFT_TENANT_ID, and VITE_MICROSOFT_API_SCOPE.";
+
+const ensureMicrosoftAuthConfigured = () => {
+  if (!isMicrosoftAuthConfigured) {
+    throw new Error(microsoftConfigError);
+  }
+};
 
 export const apiLoginRequest = {
-  scopes: [apiScope],
+  scopes: [apiScope || "User.Read"],
 };
 
 export const graphLoginRequest = {
@@ -29,8 +36,8 @@ export const graphLoginRequest = {
 
 const msalConfig: Configuration = {
   auth: {
-    clientId,
-    authority: `https://login.microsoftonline.com/${tenantId}`,
+    clientId: clientId || "00000000-0000-0000-0000-000000000000",
+    authority: `https://login.microsoftonline.com/${tenantId || "common"}`,
     redirectUri,
     postLogoutRedirectUri: redirectUri,
   },
@@ -73,6 +80,10 @@ const getRequestAccount = (): AccountInfo | undefined =>
   msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
 
 export const getApiAccessToken = async () => {
+  if (!isMicrosoftAuthConfigured) {
+    return null;
+  }
+
   const account = getRequestAccount();
   if (!account) {
     return null;
@@ -97,6 +108,8 @@ export const getApiAccessToken = async () => {
 };
 
 export const getGraphAccessToken = async () => {
+  ensureMicrosoftAuthConfigured();
+
   const account = getRequestAccount();
   if (!account) {
     return null;
