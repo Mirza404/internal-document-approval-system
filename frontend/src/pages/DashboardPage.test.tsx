@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthUser } from "../auth/authStorage";
@@ -9,6 +9,7 @@ import DashboardPage from "./DashboardPage";
 
 const mocks = vi.hoisted(() => ({
   createDocument: vi.fn(),
+  decideApproval: vi.fn(),
   getApprovalHistory: vi.fn(),
   markAllNotificationsRead: vi.fn(),
   markNotificationRead: vi.fn(),
@@ -40,7 +41,10 @@ vi.mock("../hooks/useDocuments", () => ({
 }));
 
 vi.mock("../hooks/useApprovals", () => ({
-  useApprovalDecision: () => mocks.useApprovalDecision(),
+  useApprovalDecision: () => ({
+    isPending: false,
+    mutateAsync: mocks.decideApproval,
+  }),
   usePendingApprovals: () => mocks.usePendingApprovals(),
 }));
 
@@ -92,6 +96,13 @@ const approver: AuthUser = {
   email: "approver@example.com",
   fullName: "Approver One",
   role: "Approver",
+};
+
+const admin: AuthUser = {
+  userId: "admin-1",
+  email: "admin@example.com",
+  fullName: "Admin One",
+  role: "Admin",
 };
 
 const documentTypes: DocumentType[] = [
@@ -156,16 +167,13 @@ describe("DashboardPage", () => {
     Object.values(mocks).forEach((mock) => mock.mockReset());
 
     mocks.createDocument.mockResolvedValue(makeDocument({}));
+    mocks.decideApproval.mockResolvedValue({});
     mocks.getApprovalHistory.mockImplementation(() => new Promise(() => {}));
     mocks.updateDocument.mockResolvedValue(makeDocument({}));
     mocks.useAdminUsers.mockReturnValue({
       data: [],
       isError: false,
       isLoading: false,
-    });
-    mocks.useApprovalDecision.mockReturnValue({
-      isPending: false,
-      mutateAsync: vi.fn(),
     });
     mocks.useDocumentTypes.mockReturnValue({
       data: documentTypes,
@@ -338,6 +346,50 @@ describe("DashboardPage", () => {
     });
   });
 
+  it("resubmits a returned document with change notes", async () => {
+    const user = userEvent.setup();
+    mocks.useDocuments.mockReturnValue({
+      data: [
+        makeDocument({
+          id: "document-returned",
+          title: "Returned travel form",
+          status: "ChangesRequested",
+          amount: 250,
+          budgetCode: "TRAVEL-1",
+          createdAt: "2026-05-20T08:00:00Z",
+          updatedAt: "2026-05-21T08:00:00Z",
+        }),
+      ],
+      isLoading: false,
+    });
+
+    renderDashboard();
+
+    await user.click(screen.getByRole("button", { name: "Edit and resubmit" }));
+    const resubmitForm = screen
+      .getByRole("button", { name: "Submit changes" })
+      .closest("form");
+
+    expect(resubmitForm).not.toBeNull();
+
+    const form = within(resubmitForm as HTMLFormElement);
+    await user.clear(form.getByLabelText("Title"));
+    await user.type(form.getByLabelText("Title"), "Updated travel form");
+    await user.type(form.getByLabelText("Change notes"), "Added itinerary.");
+    await user.click(form.getByRole("button", { name: "Submit changes" }));
+
+    await waitFor(() => {
+      expect(mocks.updateDocument).toHaveBeenCalledWith({
+        id: "document-returned",
+        data: expect.objectContaining({
+          changeNotes: "Added itinerary.",
+          status: "PendingApproval",
+          title: "Updated travel form",
+        }),
+      });
+    });
+  });
+
   it("renders approver queue empty state", () => {
     renderDashboard(approver);
 
@@ -364,5 +416,62 @@ describe("DashboardPage", () => {
     expect(screen.getAllByText("Pending Approval").length).toBeGreaterThan(0);
     expect(screen.getByText("Submitted by Employee One")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
+  });
+
+  it("submits approval decisions with reviewer notes", async () => {
+    const user = userEvent.setup();
+    mocks.usePendingApprovals.mockReturnValue({
+      data: [pendingApproval],
+      isLoading: false,
+    });
+
+    renderDashboard(approver);
+
+    await user.type(screen.getByLabelText("Reviewer notes"), "Needs receipt.");
+    await user.click(screen.getByRole("button", { name: "Request changes" }));
+
+    await waitFor(() => {
+      expect(mocks.decideApproval).toHaveBeenCalledWith({
+        documentId: "approval-document-1",
+        action: "request-changes",
+        comments: "Needs receipt.",
+      });
+    });
+  });
+
+  it("lets admins manage users from the approval workspace modal", async () => {
+    const user = userEvent.setup();
+    mocks.useAdminUsers.mockReturnValue({
+      data: [
+        {
+          id: "employee-2",
+          email: "two@example.com",
+          fullName: "Employee Two",
+          role: "Employee",
+          isActive: true,
+        },
+      ],
+      isError: false,
+      isLoading: false,
+    });
+
+    renderDashboard(admin);
+
+    await user.click(screen.getByRole("button", { name: "Manage users" }));
+    await user.selectOptions(screen.getByDisplayValue("Employee"), "Approver");
+    await user.click(screen.getByRole("button", { name: "Active" }));
+
+    expect(screen.getByText("User management")).toBeInTheDocument();
+    expect(mocks.updateAdminUserRole).toHaveBeenCalledWith({
+      id: "employee-2",
+      role: "Approver",
+    });
+    expect(mocks.updateAdminUserStatus).toHaveBeenCalledWith({
+      id: "employee-2",
+      isActive: false,
+    });
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByText("User management")).not.toBeInTheDocument();
   });
 });
