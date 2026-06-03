@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDocumentPreviewSections,
   previewPlaceholder,
-} from "./documentPreview";
+} from "./documentPreviewSections";
 
 const findField = (
   sections: ReturnType<typeof buildDocumentPreviewSections>,
