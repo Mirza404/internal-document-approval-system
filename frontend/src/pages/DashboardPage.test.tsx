@@ -75,14 +75,9 @@ vi.mock("../components/documents/DocumentPreview", () => ({
   ),
 }));
 
-vi.mock("../api/documents", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../api/documents")>();
-
-  return {
-    ...actual,
-    getApprovalHistory: mocks.getApprovalHistory,
-  };
-});
+vi.mock("../api/documents", () => ({
+  getApprovalHistory: mocks.getApprovalHistory,
+}));
 
 const employee: AuthUser = {
   userId: "employee-1",
