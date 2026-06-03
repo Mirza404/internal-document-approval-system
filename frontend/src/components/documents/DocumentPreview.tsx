@@ -3,7 +3,7 @@ import {
   buildDocumentPreviewSections,
   previewPlaceholder,
   type DocumentPreviewSource,
-} from "./documentPreview";
+} from "./documentPreviewSections";
 
 interface DocumentPreviewProps {
   source: DocumentPreviewSource;
